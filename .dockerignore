@@ -1,5 +1,9 @@
 .git
 .idea
+.env
+.env.*
+!.env.example
+!.env.docker.example
 dist
 node_modules
 npm-debug.log*
