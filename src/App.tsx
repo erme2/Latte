@@ -1,95 +1,90 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
+import {
+  type AuthUserResponse,
+  completeLoginCallback,
+  getCurrentUser,
+  getStoredAuth,
+  isUnauthenticated,
+  login,
+} from './helpers/auth'
+import { paneUrl } from './helpers/connection'
 
 type AuthState = 'checking' | 'authenticated' | 'redirecting' | 'error'
 
-type PaneUser = {
-  user_id?: number
-  name?: string
-  email?: string
-  workos_id?: string
-  workos_organization_id?: string | null
-  last_login_at?: string | null
-}
-
-type AuthUserResponse = {
-  user: PaneUser | null
-  workos_organization_id: string | null
-}
-
-const paneBaseUrl = import.meta.env.VITE_PANE_BASE_URL ?? 'http://localhost:8000'
 const dashboardPath = '/dashboard'
 
-function authLoginUrl(): string {
-  const redirectTo = new URL(dashboardPath, window.location.origin)
-  const loginUrl = new URL('/auth/login', paneBaseUrl)
-  loginUrl.searchParams.set('redirect_to', redirectTo.toString())
-
-  return loginUrl.toString()
+function dashboardUrl(): string {
+  return new URL(dashboardPath, window.location.origin).toString()
 }
 
-async function fetchCurrentUser(): Promise<AuthUserResponse> {
-  const response = await fetch(new URL('/auth/user', paneBaseUrl), {
-    credentials: 'include',
-    headers: {
-      Accept: 'application/json',
-    },
-  })
+function hasWorkOsCallbackParams(): boolean {
+  const params = new URLSearchParams(window.location.search)
 
-  if (response.status === 401 || response.status === 403) {
-    throw new Error('unauthenticated')
-  }
-
-  if (!response.ok) {
-    throw new Error(`Pane auth check failed with status ${response.status}`)
-  }
-
-  return response.json() as Promise<AuthUserResponse>
+  return params.has('code') || params.has('error')
 }
 
 function App() {
   const [authState, setAuthState] = useState<AuthState>('checking')
-  const [authUser, setAuthUser] = useState<AuthUserResponse | null>(null)
+  const [authUser, setAuthUser] = useState<AuthUserResponse | null>(() => getStoredAuth())
   const [message, setMessage] = useState('Checking your Pane session')
 
-  const loginUrl = useMemo(() => authLoginUrl(), [])
+  const redirectTo = useMemo(() => dashboardUrl(), [])
 
   useEffect(() => {
     let active = true
 
-    fetchCurrentUser()
-      .then((data) => {
+    async function authenticate(): Promise<void> {
+      try {
+        if (hasWorkOsCallbackParams()) {
+          setMessage('Completing WorkOS login')
+          const auth = await completeLoginCallback(new URLSearchParams(window.location.search))
+
+          if (!active) {
+            return
+          }
+
+          setAuthUser(auth)
+          setAuthState('authenticated')
+          window.history.replaceState(null, '', dashboardPath)
+          return
+        }
+
+        const auth = await getCurrentUser()
+
         if (!active) {
           return
         }
 
-        setAuthUser(data)
+        setAuthUser(auth)
         setAuthState('authenticated')
 
         if (window.location.pathname !== dashboardPath) {
           window.history.replaceState(null, '', dashboardPath)
         }
-      })
-      .catch((error: unknown) => {
+      } catch (error) {
         if (!active) {
           return
         }
 
-        if (error instanceof Error && error.message === 'unauthenticated') {
+        if (isUnauthenticated(error)) {
           setAuthState('redirecting')
           setMessage('Redirecting to WorkOS login')
-          window.location.assign(loginUrl)
+          await login(redirectTo)
           return
         }
 
         setAuthState('error')
         setMessage(error instanceof Error ? error.message : 'Unable to check authentication')
-      })
+      }
+    }
+
+    void authenticate()
 
     return () => {
       active = false
     }
-  }, [loginUrl])
+  }, [redirectTo])
 
   if (authState !== 'authenticated') {
     return (
@@ -100,9 +95,9 @@ function App() {
           <h1>{message}</h1>
           {authState === 'error' ? (
             <div className="actions">
-              <a className="button" href={loginUrl}>
+              <button className="button" type="button" onClick={() => void login(redirectTo)}>
                 Sign in with WorkOS
-              </a>
+              </button>
             </div>
           ) : null}
         </section>
@@ -146,9 +141,9 @@ function App() {
       <section className="activity">
         <div>
           <h2>Pane connection</h2>
-          <p>Burro is reading the active Laravel session through Pane.</p>
+          <p>Burro owns the login redirect and Pane owns the authenticated session.</p>
         </div>
-        <code>{new URL('/auth/user', paneBaseUrl).toString()}</code>
+        <code>{paneUrl('/auth/user')}</code>
       </section>
     </main>
   )

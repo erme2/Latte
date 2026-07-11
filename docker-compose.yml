@@ -1,0 +1,23 @@
+services:
+  burro:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: burro
+    restart: unless-stopped
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_PANE_BASE_URL: /pane
+      VITE_PANE_PROXY_TARGET: https://nginx
+      VITE_PANE_PROXY_HOST: pane.localhost
+    volumes:
+      - .:/app
+      - /app/node_modules
+    networks:
+      - pane
+
+networks:
+  pane:
+    external: true
+    name: pane_laravel
