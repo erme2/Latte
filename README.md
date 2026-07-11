@@ -7,7 +7,8 @@ React and TypeScript demo app for Pane authentication through WorkOS.
 Create `.env`:
 
 ```dotenv
-VITE_PANE_BASE_URL=http://localhost:8000
+VITE_PANE_BASE_URL=/pane
+VITE_PANE_PROXY_TARGET=http://localhost:8000
 ```
 
 Pane should also allow Burro as its frontend origin:
@@ -23,4 +24,4 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`. Burro checks `GET /auth/user` on Pane. If there is no active Laravel session, it redirects to `GET /auth/login` on Pane, which starts the WorkOS AuthKit login flow. After login, Pane redirects back to `/dashboard`.
+Open `http://localhost:5173`. Burro calls Pane through Vite's `/pane` proxy, avoiding cross-origin browser requests. It checks `GET /auth/user`; if there is no active Laravel session, it calls `GET /auth/login-url`, redirects the browser to the returned WorkOS AuthKit URL, receives the WorkOS callback, and posts the callback params to `POST /auth/callback`. Pane then creates the Laravel session and Burro stores a small user snapshot in `sessionStorage`.
