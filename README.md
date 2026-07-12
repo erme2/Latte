@@ -27,7 +27,9 @@ npm run dev
 
 Open `http://localhost:5173`. Burro calls Pane through Vite's `/pane` proxy, avoiding cross-origin browser requests. It checks `GET /auth/user`; if there is no active Laravel session, it calls `GET /auth/login-url`, redirects the browser to the returned WorkOS AuthKit URL, receives the WorkOS callback, and posts the callback params to `POST /auth/callback`. Pane then creates the Laravel session and Burro stores a small user snapshot in `sessionStorage`.
 
-Burro owns the client-side OAuth state check. It stores the expected WorkOS state in session storage before redirecting to AuthKit, consumes it on callback, and refuses to post the callback to Pane if the returned state is missing or does not match.
+Pane owns server-side OAuth state validation. Burro forwards the callback state to Pane, and Pane rejects missing or mismatched state before completing login.
+
+See [WorkOS Authentication Flow](docs/workos-auth.md) for the full Burro and Pane auth sequence.
 
 ## Run With Docker For Local Development
 

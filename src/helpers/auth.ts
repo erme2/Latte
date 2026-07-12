@@ -1,11 +1,5 @@
 import { AxiosError } from 'axios'
 import { pane } from './connection'
-import {
-  assertOAuthStateMatches,
-  clearExpectedOAuthState,
-  consumeExpectedOAuthState,
-  storeExpectedOAuthState,
-} from './oauthState'
 
 export type PaneUser = {
   user_id?: number
@@ -49,7 +43,6 @@ export function storeAuth(auth: AuthUserResponse): void {
 
 export function clearStoredAuth(): void {
   window.sessionStorage.removeItem(sessionKey)
-  clearExpectedOAuthState(window.sessionStorage)
 }
 
 export function isUnauthenticated(error: unknown): boolean {
@@ -70,16 +63,10 @@ export async function login(redirectTo: string): Promise<void> {
     },
   })
 
-  storeExpectedOAuthState(window.sessionStorage, data.state)
   window.location.assign(data.authorization_url)
 }
 
 export async function completeLoginCallback(params: URLSearchParams): Promise<AuthUserResponse> {
-  const callbackState = params.get('state')
-  const expectedState = consumeExpectedOAuthState(window.sessionStorage)
-
-  assertOAuthStateMatches(expectedState, callbackState)
-
   const payload: {
     code: string | null
     state: string | null
@@ -87,7 +74,7 @@ export async function completeLoginCallback(params: URLSearchParams): Promise<Au
     error_description?: string
   } = {
     code: params.get('code'),
-    state: callbackState,
+    state: params.get('state'),
   }
 
   const error = params.get('error')
