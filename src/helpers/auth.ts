@@ -22,6 +22,8 @@ type LoginUrlResponse = {
 
 const sessionKey = 'burro.auth'
 
+let loginRedirectInProgress = false
+
 export function getStoredAuth(): AuthUserResponse | null {
   const value = window.sessionStorage.getItem(sessionKey)
 
@@ -43,6 +45,7 @@ export function storeAuth(auth: AuthUserResponse): void {
 
 export function clearStoredAuth(): void {
   window.sessionStorage.removeItem(sessionKey)
+  loginRedirectInProgress = false
 }
 
 export function isUnauthenticated(error: unknown): boolean {
@@ -57,13 +60,24 @@ export async function getCurrentUser(): Promise<AuthUserResponse> {
 }
 
 export async function login(redirectTo: string): Promise<void> {
-  const { data } = await pane.get<LoginUrlResponse>('/auth/login-url', {
-    params: {
-      redirect_to: redirectTo,
-    },
-  })
+  if (loginRedirectInProgress) {
+    return
+  }
 
-  window.location.assign(data.authorization_url)
+  loginRedirectInProgress = true
+
+  try {
+    const { data } = await pane.get<LoginUrlResponse>('/auth/login-url', {
+      params: {
+        redirect_to: redirectTo,
+      },
+    })
+
+    window.location.assign(data.authorization_url)
+  } catch (error) {
+    loginRedirectInProgress = false
+    throw error
+  }
 }
 
 export async function completeLoginCallback(params: URLSearchParams): Promise<AuthUserResponse> {
