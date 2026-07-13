@@ -20,9 +20,23 @@ type LoginUrlResponse = {
   state: string
 }
 
+type LoginCallbackPayload = {
+  code: string | null
+  state: string | null
+  error?: string
+  error_description?: string
+}
+
+type LoginCallbackRequest = {
+  key: string
+  promise: Promise<AuthUserResponse>
+}
+
 const sessionKey = 'burro.auth'
 
 let loginRedirectInProgress = false
+let loginCallbackInProgress: LoginCallbackRequest | null = null
+let completedLoginCallbackKey: string | null = null
 
 export function getStoredAuth(): AuthUserResponse | null {
   const value = window.sessionStorage.getItem(sessionKey)
@@ -46,6 +60,8 @@ export function storeAuth(auth: AuthUserResponse): void {
 export function clearStoredAuth(): void {
   window.sessionStorage.removeItem(sessionKey)
   loginRedirectInProgress = false
+  loginCallbackInProgress = null
+  completedLoginCallbackKey = null
 }
 
 export function isUnauthenticated(error: unknown): boolean {
@@ -80,13 +96,8 @@ export async function login(redirectTo: string): Promise<void> {
   }
 }
 
-export async function completeLoginCallback(params: URLSearchParams): Promise<AuthUserResponse> {
-  const payload: {
-    code: string | null
-    state: string | null
-    error?: string
-    error_description?: string
-  } = {
+export function makeLoginCallbackPayload(params: URLSearchParams): LoginCallbackPayload {
+  const payload: LoginCallbackPayload = {
     code: params.get('code'),
     state: params.get('state'),
   }
@@ -102,8 +113,52 @@ export async function completeLoginCallback(params: URLSearchParams): Promise<Au
     payload.error_description = errorDescription
   }
 
+  return payload
+}
+
+function loginCallbackKey(payload: LoginCallbackPayload): string {
+  return JSON.stringify([
+    payload.code,
+    payload.state,
+    payload.error ?? null,
+    payload.error_description ?? null,
+  ])
+}
+
+async function submitLoginCallback(
+  payload: LoginCallbackPayload,
+  key: string,
+): Promise<AuthUserResponse> {
   const { data } = await pane.post<AuthUserResponse>('/auth/callback', payload)
   storeAuth(data)
+  completedLoginCallbackKey = key
 
   return data
+}
+
+export function completeLoginCallback(params: URLSearchParams): Promise<AuthUserResponse> {
+  const payload = makeLoginCallbackPayload(params)
+  const key = loginCallbackKey(payload)
+
+  if (completedLoginCallbackKey === key) {
+    const storedAuth = getStoredAuth()
+
+    if (storedAuth) {
+      return Promise.resolve(storedAuth)
+    }
+  }
+
+  if (loginCallbackInProgress?.key === key) {
+    return loginCallbackInProgress.promise
+  }
+
+  const promise = submitLoginCallback(payload, key).finally(() => {
+    if (loginCallbackInProgress?.key === key && loginCallbackInProgress.promise === promise) {
+      loginCallbackInProgress = null
+    }
+  })
+
+  loginCallbackInProgress = { key, promise }
+
+  return promise
 }

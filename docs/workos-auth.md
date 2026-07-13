@@ -58,7 +58,7 @@ Burro does not validate OAuth state itself. It forwards the callback `state` to 
    /auth/callback?code=...&state=...
    ```
 
-6. Burro posts those parameters to Pane:
+6. Burro posts those parameters to Pane. Burro keeps an in-flight guard around this request so React development remounts or repeated callback renders reuse the same promise instead of exchanging the one-time WorkOS code twice:
 
    ```http
    POST /pane/auth/callback
@@ -75,6 +75,12 @@ Burro does not validate OAuth state itself. It forwards the callback `state` to 
 8. If state is valid, Pane exchanges the code with WorkOS, syncs the user, logs the user into Laravel, and returns the authenticated user payload.
 
 9. Burro stores that user payload in `sessionStorage` and shows the dashboard.
+
+## CSRF for Pane Requests
+
+Burro sends Pane requests with credentials through the `/pane` proxy. Axios is configured to read Pane's encrypted `XSRF-TOKEN` cookie and send it as the `X-XSRF-TOKEN` header. Pane uses that header for CSRF validation on mutating CRUD requests.
+
+The WorkOS callback POST is exempt from CSRF in Pane because it completes an external OAuth redirect before the user has an authenticated Pane session. Pane still validates the WorkOS `state` value on that route.
 
 ## Invalid State Behavior
 
