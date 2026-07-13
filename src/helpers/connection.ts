@@ -9,6 +9,9 @@ export function paneUrl(path: string): string {
 export const pane = axios.create({
   baseURL: paneBaseUrl,
   withCredentials: true,
+  withXSRFToken: true,
+  xsrfCookieName: 'XSRF-TOKEN',
+  xsrfHeaderName: 'X-XSRF-TOKEN',
   headers: {
     Accept: 'application/json',
   },

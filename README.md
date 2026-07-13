@@ -29,6 +29,8 @@ Open `http://localhost:5173`. Burro calls Pane through Vite's `/pane` proxy, avo
 
 Pane owns server-side OAuth state validation. Burro forwards the callback state to Pane, and Pane rejects missing or mismatched state before completing login.
 
+Pane's CSRF protection expects mutating browser requests to echo Pane's encrypted `XSRF-TOKEN` cookie in the `X-XSRF-TOKEN` header. Burro configures its Pane Axios client to send that header automatically for requests through the `/pane` proxy.
+
 See [WorkOS Authentication Flow](docs/workos-auth.md) for the full Burro and Pane auth sequence.
 
 ## Run With Docker For Local Development
