@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "node scripts/ci-workflow.test.mjs && node scripts/auth-contract.test.mjs",
+    "test": "node scripts/ci-workflow.test.mjs && node scripts/auth-contract.test.mjs && node scripts/env-file-protection.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
