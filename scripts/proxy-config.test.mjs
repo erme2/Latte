@@ -1,0 +1,62 @@
+import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import {
+  createPaneProxyOptions,
+  validatePaneProxyHost,
+  validatePaneProxyTarget,
+} from '../vite-pane-proxy.mjs';
+
+const readme = readFileSync('README.md', 'utf8');
+const envExample = readFileSync('.env.example', 'utf8');
+const dockerEnvExample = readFileSync('.env.docker.example', 'utf8');
+
+assert.equal(validatePaneProxyTarget(undefined), 'http://localhost:8000');
+assert.equal(validatePaneProxyTarget('http://localhost:8000'), 'http://localhost:8000');
+assert.equal(validatePaneProxyTarget('https://nginx'), 'https://nginx');
+assert.equal(validatePaneProxyTarget('https://pane.localhost'), 'https://pane.localhost');
+
+for (const target of [
+  'ftp://localhost',
+  'https://evil.example',
+  'https://localhost/pane',
+  'https://localhost?target=evil',
+  'https://user:pass@localhost',
+  'not-a-url',
+]) {
+  assert.throws(() => validatePaneProxyTarget(target), /VITE_PANE_PROXY_TARGET/);
+}
+
+assert.equal(validatePaneProxyHost(undefined), undefined);
+assert.equal(validatePaneProxyHost(''), undefined);
+assert.equal(validatePaneProxyHost('pane.localhost'), 'pane.localhost');
+assert.equal(validatePaneProxyHost('localhost:8000'), 'localhost:8000');
+
+for (const host of [
+  'evil.example',
+  'https://pane.localhost',
+  'pane.localhost/path',
+  'pane.localhost?x=1',
+  'user@pane.localhost',
+]) {
+  assert.throws(() => validatePaneProxyHost(host), /VITE_PANE_PROXY_HOST/);
+}
+
+const localProxy = createPaneProxyOptions({});
+assert.equal(localProxy.target, 'http://localhost:8000');
+assert.equal(localProxy.headers, undefined);
+assert.equal(localProxy.rewrite('/pane/auth/user'), '/auth/user');
+
+const dockerProxy = createPaneProxyOptions({
+  VITE_PANE_PROXY_TARGET: 'https://nginx',
+  VITE_PANE_PROXY_HOST: 'pane.localhost',
+});
+assert.equal(dockerProxy.target, 'https://nginx');
+assert.deepEqual(dockerProxy.headers, { Host: 'pane.localhost' });
+
+assert.equal(envExample.includes('VITE_PANE_PROXY_TARGET=http://localhost:8000'), true);
+assert.equal(envExample.includes('VITE_PANE_PROXY_HOST='), true);
+assert.equal(dockerEnvExample.includes('VITE_PANE_PROXY_TARGET=https://nginx'), true);
+assert.equal(dockerEnvExample.includes('VITE_PANE_PROXY_HOST=pane.localhost'), true);
+assert.match(readme, /VITE_PANE_PROXY_TARGET/);
+assert.match(readme, /VITE_PANE_PROXY_HOST/);
+assert.match(readme, /Invalid proxy targets fail during Vite startup/);

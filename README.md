@@ -12,6 +12,15 @@ cp .env.example .env
 
 The default local values point the Vite proxy at Pane on `http://localhost:8000`.
 
+Burro only allows the Vite `/pane` proxy to target expected local Pane endpoints. Invalid proxy targets fail during Vite startup instead of silently routing authenticated Pane traffic elsewhere.
+
+| Environment | `VITE_PANE_PROXY_TARGET` | `VITE_PANE_PROXY_HOST` |
+| --- | --- | --- |
+| Local host | `http://localhost:8000` | empty |
+| Docker | `https://nginx` | `pane.localhost` |
+
+`VITE_PANE_PROXY_TARGET` must be an `http` or `https` origin for an expected local Pane host. `VITE_PANE_PROXY_HOST` is optional, but when set it must be an expected Pane Host header such as `pane.localhost`.
+
 Pane should also allow Burro as its frontend origin:
 
 ```dotenv
