@@ -14,12 +14,12 @@ The default local values point the Vite proxy at Pane on `http://localhost:8000`
 
 Burro only allows the Vite `/pane` proxy to target expected local Pane endpoints. Invalid proxy targets fail during Vite startup instead of silently routing authenticated Pane traffic elsewhere.
 
-| Environment | `VITE_PANE_PROXY_TARGET` | `VITE_PANE_PROXY_HOST` |
-| --- | --- | --- |
-| Local host | `http://localhost:8000` | empty |
-| Docker | `https://nginx` | `pane.localhost` |
+| Environment | `VITE_PANE_PROXY_TARGET` | `VITE_PANE_PROXY_HOST` | `VITE_PANE_PROXY_VERIFY_TLS` |
+| --- | --- | --- | --- |
+| Local host | `http://localhost:8000` | empty | `true` |
+| Docker | `https://nginx` | `pane.localhost` | `false` |
 
-`VITE_PANE_PROXY_TARGET` must be an `http` or `https` origin for an expected local Pane host. `VITE_PANE_PROXY_HOST` is optional, but when set it must be an expected Pane Host header such as `pane.localhost`.
+`VITE_PANE_PROXY_TARGET` must be an `http` or `https` origin for an expected local Pane host. `VITE_PANE_PROXY_HOST` is optional, but when set it must be an expected Pane Host header such as `pane.localhost`. `VITE_PANE_PROXY_VERIFY_TLS` defaults to `true`; set it to `false` only for local development targets that use a self-signed certificate or a container DNS name that cannot pass normal certificate verification.
 
 Burro validates the login URL returned by Pane before redirecting the browser. By default, redirects are allowed only to `https://api.workos.com` and `https://*.authkit.app`. Set `VITE_AUTH_REDIRECT_ALLOWED_HOSTS` to a comma-separated list of extra trusted authentication hosts when using a custom WorkOS/AuthKit domain, for example `login.example.com,*.auth.example.com`.
 
