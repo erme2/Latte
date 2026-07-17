@@ -21,6 +21,8 @@ Burro only allows the Vite `/pane` proxy to target expected local Pane endpoints
 
 `VITE_PANE_PROXY_TARGET` must be an `http` or `https` origin for an expected local Pane host. `VITE_PANE_PROXY_HOST` is optional, but when set it must be an expected Pane Host header such as `pane.localhost`.
 
+Burro validates the login URL returned by Pane before redirecting the browser. By default, redirects are allowed only to `https://api.workos.com` and `https://*.authkit.app`. Set `VITE_AUTH_REDIRECT_ALLOWED_HOSTS` to a comma-separated list of extra trusted authentication hosts when using a custom WorkOS/AuthKit domain, for example `login.example.com,*.auth.example.com`.
+
 Pane should also allow Burro as its frontend origin:
 
 ```dotenv

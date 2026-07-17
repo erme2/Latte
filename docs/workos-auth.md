@@ -50,7 +50,7 @@ Burro does not validate OAuth state itself. It forwards the callback `state` to 
 
    Pane may also set a short-lived `pane_workos_state` cookie so JSON callback requests can still be validated if the session state is not available in the normal way.
 
-4. Burro redirects the browser to `authorization_url`.
+4. Burro validates that `authorization_url` uses a trusted authentication redirect host, then redirects the browser to it. The default trusted hosts are `api.workos.com` and `*.authkit.app`; custom WorkOS/AuthKit domains can be added with `VITE_AUTH_REDIRECT_ALLOWED_HOSTS`.
 
 5. WorkOS redirects back to Burro with callback parameters:
 

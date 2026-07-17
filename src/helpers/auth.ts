@@ -1,4 +1,5 @@
 import { AxiosError } from 'axios'
+import { validateAuthRedirectUrl } from './auth-redirect.mjs'
 import { pane } from './connection'
 
 export type PaneUser = {
@@ -89,7 +90,12 @@ export async function login(redirectTo: string): Promise<void> {
       },
     })
 
-    window.location.assign(data.authorization_url)
+    window.location.assign(
+      validateAuthRedirectUrl(
+        data.authorization_url,
+        import.meta.env.VITE_AUTH_REDIRECT_ALLOWED_HOSTS,
+      ),
+    )
   } catch (error) {
     loginRedirectInProgress = false
     throw error

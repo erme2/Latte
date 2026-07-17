@@ -70,7 +70,20 @@ function App() {
         if (isUnauthenticated(error)) {
           setAuthState('redirecting')
           setMessage('Redirecting to WorkOS login')
-          await login(redirectTo)
+
+          try {
+            await login(redirectTo)
+          } catch (loginError) {
+            if (!active) {
+              return
+            }
+
+            setAuthState('error')
+            setMessage(
+              loginError instanceof Error ? loginError.message : 'Unable to start WorkOS login',
+            )
+          }
+
           return
         }
 
