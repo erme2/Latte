@@ -4,6 +4,7 @@ import {
   createPaneProxyOptions,
   validatePaneProxyHost,
   validatePaneProxyTarget,
+  validatePaneProxyVerifyTls,
 } from '../vite-pane-proxy.mjs';
 
 const readme = readFileSync('README.md', 'utf8');
@@ -41,22 +42,38 @@ for (const host of [
   assert.throws(() => validatePaneProxyHost(host), /VITE_PANE_PROXY_HOST/);
 }
 
+assert.equal(validatePaneProxyVerifyTls(undefined), true);
+assert.equal(validatePaneProxyVerifyTls(''), true);
+assert.equal(validatePaneProxyVerifyTls('true'), true);
+assert.equal(validatePaneProxyVerifyTls('1'), true);
+assert.equal(validatePaneProxyVerifyTls('yes'), true);
+assert.equal(validatePaneProxyVerifyTls('false'), false);
+assert.equal(validatePaneProxyVerifyTls('0'), false);
+assert.equal(validatePaneProxyVerifyTls('off'), false);
+assert.throws(() => validatePaneProxyVerifyTls('maybe'), /VITE_PANE_PROXY_VERIFY_TLS/);
+
 const localProxy = createPaneProxyOptions({});
 assert.equal(localProxy.target, 'http://localhost:8000');
+assert.equal(localProxy.secure, true);
 assert.equal(localProxy.headers, undefined);
 assert.equal(localProxy.rewrite('/pane/auth/user'), '/auth/user');
 
 const dockerProxy = createPaneProxyOptions({
   VITE_PANE_PROXY_TARGET: 'https://nginx',
   VITE_PANE_PROXY_HOST: 'pane.localhost',
+  VITE_PANE_PROXY_VERIFY_TLS: 'false',
 });
 assert.equal(dockerProxy.target, 'https://nginx');
+assert.equal(dockerProxy.secure, false);
 assert.deepEqual(dockerProxy.headers, { Host: 'pane.localhost' });
 
 assert.equal(envExample.includes('VITE_PANE_PROXY_TARGET=http://localhost:8000'), true);
 assert.equal(envExample.includes('VITE_PANE_PROXY_HOST='), true);
+assert.equal(envExample.includes('VITE_PANE_PROXY_VERIFY_TLS=true'), true);
 assert.equal(dockerEnvExample.includes('VITE_PANE_PROXY_TARGET=https://nginx'), true);
 assert.equal(dockerEnvExample.includes('VITE_PANE_PROXY_HOST=pane.localhost'), true);
+assert.equal(dockerEnvExample.includes('VITE_PANE_PROXY_VERIFY_TLS=false'), true);
 assert.match(readme, /VITE_PANE_PROXY_TARGET/);
 assert.match(readme, /VITE_PANE_PROXY_HOST/);
+assert.match(readme, /VITE_PANE_PROXY_VERIFY_TLS/);
 assert.match(readme, /Invalid proxy targets fail during Vite startup/);

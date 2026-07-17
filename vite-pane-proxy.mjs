@@ -94,14 +94,33 @@ export function validatePaneProxyHost(value) {
   return rawHost;
 }
 
+export function validatePaneProxyVerifyTls(value) {
+  if (!hasValue(value)) {
+    return true;
+  }
+
+  const rawValue = value.trim().toLowerCase();
+
+  if (['true', '1', 'yes', 'on'].includes(rawValue)) {
+    return true;
+  }
+
+  if (['false', '0', 'no', 'off'].includes(rawValue)) {
+    return false;
+  }
+
+  throw new Error('VITE_PANE_PROXY_VERIFY_TLS must be true or false.');
+}
+
 export function createPaneProxyOptions(env) {
   const target = validatePaneProxyTarget(env.VITE_PANE_PROXY_TARGET);
   const host = validatePaneProxyHost(env.VITE_PANE_PROXY_HOST);
+  const verifyTls = validatePaneProxyVerifyTls(env.VITE_PANE_PROXY_VERIFY_TLS);
 
   return {
     target,
     changeOrigin: true,
-    secure: false,
+    secure: verifyTls,
     headers: host
       ? {
           Host: host,
