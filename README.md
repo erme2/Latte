@@ -60,4 +60,6 @@ docker compose up
 
 Docker uses `.env.docker` so its Pane proxy can target the `pane_laravel` network while local development keeps using `.env`. Both files are ignored by Git; only the example templates should be committed.
 
+The Docker setup runs as the image-provided `node` user. The source tree is bind-mounted at `/app`, and the writable dependency directory is the container-managed `/app/node_modules` volume.
+
 The Docker setup runs the Vite development server and publishes it only on `127.0.0.1:5173`. Do not use this Compose service as a production runtime.
