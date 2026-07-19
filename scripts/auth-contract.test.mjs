@@ -12,7 +12,7 @@ assert.match(auth, /loginRedirectInProgress/);
 assert.match(auth, /if \(loginRedirectInProgress\)/);
 assert.doesNotMatch(auth, /sessionStorage\.setItem\([^)]*state/i);
 assert.match(readme, /Pane owns server-side OAuth state validation/);
-assert.match(readme, /Burro forwards the callback state to Pane/);
+assert.match(readme, /Latte forwards the callback state to Pane/);
 
 assert.match(auth, /loginCallbackInProgress/);
 assert.match(auth, /completedLoginCallbackKey/);

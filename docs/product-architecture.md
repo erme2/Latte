@@ -12,8 +12,8 @@ permissions, and external database support without weakening these boundaries.
 - **Pane** is the installable backend. It owns authentication, authorization,
   organizations, invitations, quotas, encrypted database connections, catalog
   discovery, descriptions, data access, impersonation, and auditing.
-- **Latte** is the reusable React and TypeScript frontend template. The current
-  Burro repository is intended to be renamed to Latte.
+- **Latte** is this reusable React and TypeScript frontend template. It
+  continues the history of the repository originally named Burro.
 - **Burro** will be a new Latte-derived application used privately by Pane
   administrators as the operational console for one Pane installation.
 - **Latte-derived applications** provide organization-specific product
@@ -380,9 +380,12 @@ The following are explicitly outside phase one:
 
 ## Repository transition
 
-The current Burro repository will become Latte. A new Burro repository will be
-created from Latte for the Pane-administrator console. The rename and creation
-must use a dedicated migration plan covering Git remotes, links, package
-metadata, deployment configuration, trusted origins, issue ownership, and
-documentation. Redirects from the former repository name must not be treated
-as the permanent integration contract.
+Latte continues the history of the original Burro repository. A new Burro
+repository will be created from Latte for the Pane-administrator console. The
+rename and creation use a dedicated migration record covering Git remotes,
+links, package metadata, deployment configuration, trusted origins, issue
+ownership, and documentation. Redirects from the former repository name must
+not be treated as the permanent integration contract.
+
+See [Repository rename record](repository-rename.md) for the operational
+migration and verification checklist.
