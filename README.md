@@ -11,6 +11,10 @@ catalog discovery, descriptions, and data access. Each Latte-derived
 application is linked to one organization in one Pane installation and never
 connects directly to a managed database.
 
+Pane supports one or more MySQL or MariaDB connections per organization,
+discovers table metadata through database system catalogs, and exposes
+controlled CRUD as its first capability, not its final scope.
+
 A new **Burro** application will be created from Latte as the private
 administration console for Pane administrators. See
 [Pane, Latte, and Burro Product Architecture](docs/product-architecture.md) for
