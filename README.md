@@ -1,6 +1,20 @@
 # Burro
 
-React and TypeScript demo app for Pane authentication through WorkOS.
+Burro is the current name of the React and TypeScript frontend foundation for
+Pane. This repository is planned to become **Latte**, the reusable template for
+organization-specific applications that authenticate through Pane and use Pane
+as their only data-access layer.
+
+Pane is an independently installable, multi-organization backend. It owns
+authentication, authorization, invitations, encrypted database connections,
+catalog discovery, descriptions, and data access. Each Latte-derived
+application is linked to one organization in one Pane installation and never
+connects directly to a managed database.
+
+A new **Burro** application will be created from Latte as the private
+administration console for Pane administrators. See
+[Pane, Latte, and Burro Product Architecture](docs/product-architecture.md) for
+the agreed phase-one product and security boundaries.
 
 ## Setup
 
