@@ -55,11 +55,13 @@ cp .env.docker.example .env.docker
 Then start the container:
 
 ```bash
-docker compose up
+docker compose -f docker-compose.dev.yml up
 ```
 
 Docker uses `.env.docker` so its Pane proxy can target the `pane_laravel` network while local development keeps using `.env`. Both files are ignored by Git; only the example templates should be committed.
 
-The Docker setup runs as the image-provided `node` user. The source tree is bind-mounted at `/app`, and the writable dependency directory is the container-managed `/app/node_modules` volume.
+The explicitly named `Dockerfile.dev` and `docker-compose.dev.yml` files are only for local development. Burro intentionally has no default `Dockerfile` or `docker-compose.yml`, so generic Docker commands cannot accidentally treat the Vite development server as a production runtime.
 
-The Docker setup runs the Vite development server and publishes it only on `127.0.0.1:5173`. Do not use this Compose service as a production runtime.
+The development container runs as the image-provided `node` user. The source tree is bind-mounted at `/app`, and the writable dependency directory is the container-managed `/app/node_modules` volume.
+
+The development container runs Vite and publishes it only on `127.0.0.1:5173`. Do not deploy this Compose service or use it as a production runtime. A production deployment must run `npm run build` and serve the generated `dist/` assets with a production web server.
