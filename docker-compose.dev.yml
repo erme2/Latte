@@ -2,7 +2,7 @@ services:
   burro:
     build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.dev
     container_name: burro
     restart: unless-stopped
     user: "node"

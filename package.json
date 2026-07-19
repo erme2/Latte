@@ -7,7 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "node scripts/ci-workflow.test.mjs && node scripts/auth-contract.test.mjs && node scripts/env-file-protection.test.mjs && node scripts/proxy-config.test.mjs && node scripts/auth-redirect.test.mjs && node scripts/docker-non-root.test.mjs",
+    "test": "node scripts/ci-workflow.test.mjs && node scripts/auth-contract.test.mjs && node scripts/env-file-protection.test.mjs && node scripts/proxy-config.test.mjs && node scripts/auth-redirect.test.mjs && node scripts/docker-non-root.test.mjs && node scripts/docker-dev-scope.test.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
