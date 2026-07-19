@@ -104,7 +104,7 @@ function App() {
       <main className="auth-shell">
         <section className="status-panel" aria-live="polite">
           <span className="status-dot" data-state={authState} />
-          <p className="eyebrow">Burro</p>
+          <p className="eyebrow">Latte</p>
           <h1>{message}</h1>
           {authState === 'error' ? (
             <div className="actions">
@@ -124,7 +124,7 @@ function App() {
     <main className="dashboard">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Burro demo</p>
+          <p className="eyebrow">Latte demo</p>
           <h1>Dashboard</h1>
         </div>
         <span className="session-badge">Signed in</span>
@@ -154,7 +154,7 @@ function App() {
       <section className="activity">
         <div>
           <h2>Pane connection</h2>
-          <p>Burro owns the login redirect and Pane owns the authenticated session.</p>
+          <p>Latte owns the login redirect and Pane owns the authenticated session.</p>
         </div>
         <code>{paneUrl('/auth/user')}</code>
       </section>

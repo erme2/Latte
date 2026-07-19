@@ -33,7 +33,7 @@ type LoginCallbackRequest = {
   promise: Promise<AuthUserResponse>
 }
 
-const sessionKey = 'burro.auth'
+const sessionKey = 'latte.auth'
 
 let loginRedirectInProgress = false
 let loginCallbackInProgress: LoginCallbackRequest | null = null

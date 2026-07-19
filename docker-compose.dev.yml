@@ -1,9 +1,9 @@
 services:
-  burro:
+  latte:
     build:
       context: .
       dockerfile: Dockerfile.dev
-    container_name: burro
+    container_name: latte
     restart: unless-stopped
     user: "node"
     ports:
