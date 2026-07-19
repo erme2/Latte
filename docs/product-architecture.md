@@ -126,6 +126,13 @@ trusted origin and redirect configuration. The browser cannot choose or
 override the organization identifier. Pane rejects a user who does not have an
 active membership in the application's linked organization.
 
+Every organization-scoped API route includes an explicit organization
+identifier. Pane resolves the calling application's registration and verifies
+that the route organization matches the application's registered organization
+before resolving any organization-owned resource. The route value provides
+explicit server-side scope; it does not let the browser discover or switch
+organizations.
+
 Several Latte-derived applications may be linked to the same organization. A
 membership works in every trusted application linked to that organization,
 using the same connection grants. It reveals no membership or organization
@@ -135,6 +142,22 @@ Each Latte-derived application owns its product-specific organization-admin
 interface. Latte provides reusable authentication, invitation acceptance,
 role-aware UI, Pane API integration, connection management, grant management,
 catalog, description, and authorization-state foundations.
+
+## API routing invariants
+
+- Every organization-scoped API route identifies its organization explicitly.
+- The route organization must match the calling application's permanently
+  registered organization.
+- Pane validates the application, fixed organization, active membership, role,
+  grant, requested operation, and row ownership; a route identifier alone never
+  grants access.
+- A mismatch is rejected before Pane resolves or reveals an
+  organization-owned resource.
+- Installation-scoped Pane-administrator routes do not require an organization
+  identifier. Organization-scoped changes still require the Pane administrator
+  to impersonate an organization administrator or user.
+- The exact route prefix, organization identifier form, and API version syntax
+  remain implementation decisions. They must not weaken these invariants.
 
 ## Invitations
 
