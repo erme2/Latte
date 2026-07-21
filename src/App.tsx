@@ -1,165 +1,131 @@
+import { AxiosError, type AxiosInstance } from 'axios'
 import { useEffect, useMemo, useState } from 'react'
-import './App.css'
 import {
-  type AuthUserResponse,
-  completeLoginCallback,
-  getCurrentUser,
-  getStoredAuth,
-  isUnauthenticated,
-  login,
-} from './helpers/auth'
-import { paneUrl } from './helpers/connection'
+  createAuthService,
+  createPaneClient,
+  createRowService,
+  hasOrganizationRole,
+  type LatteRuntimeConfig,
+  type LatteSession,
+} from '@erme2/latte'
+import type { LatteProduct, ProductContext } from './product/contract'
+import './App.css'
 
 type AuthState = 'checking' | 'authenticated' | 'redirecting' | 'error'
 
-const dashboardPath = '/dashboard'
-
-function dashboardUrl(): string {
-  return new URL(dashboardPath, window.location.origin).toString()
-}
-
-function hasWorkOsCallbackParams(): boolean {
+function callbackValues(): { code: string; state: string } | null {
   const params = new URLSearchParams(window.location.search)
+  const code = params.get('code')
+  const state = params.get('state')
 
-  return params.has('code') || params.has('error')
+  return code && state ? { code, state } : null
 }
 
-function App() {
-  const [authState, setAuthState] = useState<AuthState>('checking')
-  const [authUser, setAuthUser] = useState<AuthUserResponse | null>(() => getStoredAuth())
-  const [message, setMessage] = useState('Checking your Pane session')
+function redirectUrl(path: string): string {
+  return new URL(path, window.location.origin).toString()
+}
 
-  const redirectTo = useMemo(() => dashboardUrl(), [])
+function selectedRoute(product: LatteProduct) {
+  return (
+    product.routes.find((route) => route.path === window.location.pathname) ??
+    product.routes.find((route) => route.path === product.defaultPath)
+  )
+}
+
+type Props = {
+  config: LatteRuntimeConfig
+  product: LatteProduct
+}
+
+export default function App({ config, product }: Props) {
+  const [authState, setAuthState] = useState<AuthState>('checking')
+  const [session, setSession] = useState<LatteSession | null>(null)
+  const [message, setMessage] = useState('Checking your Pane session')
+  const platform = useMemo(() => {
+    const pane = createPaneClient(config)
+    return {
+      pane,
+      auth: createAuthService(pane, config, product.authenticationHosts),
+      rows: createRowService(pane, config),
+    }
+  }, [config, product.authenticationHosts])
 
   useEffect(() => {
     let active = true
 
     async function authenticate(): Promise<void> {
       try {
-        if (hasWorkOsCallbackParams()) {
-          setMessage('Completing WorkOS login')
-          const auth = await completeLoginCallback(new URLSearchParams(window.location.search))
+        const callback = callbackValues()
+        const result = callback
+          ? await platform.auth.completeLogin(callback.code, callback.state)
+          : await platform.auth.session()
 
-          if (!active) {
-            return
-          }
-
-          setAuthUser(auth)
-          setAuthState('authenticated')
-          window.history.replaceState(null, '', dashboardPath)
-          return
-        }
-
-        const auth = await getCurrentUser()
-
-        if (!active) {
-          return
-        }
-
-        setAuthUser(auth)
+        if (!active) return
+        setSession(result)
         setAuthState('authenticated')
 
-        if (window.location.pathname !== dashboardPath) {
-          window.history.replaceState(null, '', dashboardPath)
+        if (callback) {
+          window.history.replaceState(null, '', product.defaultPath)
         }
       } catch (error) {
-        if (!active) {
-          return
-        }
+        if (!active) return
 
-        if (isUnauthenticated(error)) {
+        if (error instanceof AxiosError && error.response?.status === 401) {
           setAuthState('redirecting')
-          setMessage('Redirecting to WorkOS login')
-
-          try {
-            await login(redirectTo)
-          } catch (loginError) {
-            if (!active) {
-              return
-            }
-
-            setAuthState('error')
-            setMessage(
-              loginError instanceof Error ? loginError.message : 'Unable to start WorkOS login',
-            )
-          }
-
+          setMessage('Redirecting to sign in')
+          await platform.auth.beginLogin(redirectUrl(window.location.pathname))
           return
         }
 
         setAuthState('error')
-        setMessage(error instanceof Error ? error.message : 'Unable to check authentication')
+        setMessage(error instanceof Error ? error.message : 'Unable to start the application')
       }
     }
 
     void authenticate()
-
     return () => {
       active = false
     }
-  }, [redirectTo])
+  }, [platform, product.defaultPath])
 
-  if (authState !== 'authenticated') {
+  if (authState !== 'authenticated' || !session) {
     return (
       <main className="auth-shell">
         <section className="status-panel" aria-live="polite">
           <span className="status-dot" data-state={authState} />
-          <p className="eyebrow">Latte</p>
+          <p className="eyebrow">{product.brand.name}</p>
           <h1>{message}</h1>
-          {authState === 'error' ? (
-            <div className="actions">
-              <button className="button" type="button" onClick={() => void login(redirectTo)}>
-                Sign in with WorkOS
-              </button>
-            </div>
-          ) : null}
         </section>
       </main>
     )
   }
 
-  const user = authUser?.user
+  const context: ProductContext = {
+    config,
+    pane: platform.pane as AxiosInstance,
+    rows: platform.rows,
+    session,
+  }
+  const route = selectedRoute(product)
+  const permitted = route && (!route.roles || hasOrganizationRole(session, route.roles))
+  const Page = permitted ? route.component : product.forbiddenPage
 
   return (
     <main className="dashboard">
       <header className="topbar">
         <div>
-          <p className="eyebrow">Latte demo</p>
-          <h1>Dashboard</h1>
+          <p className="eyebrow">{product.brand.tagline}</p>
+          <h1>{product.brand.name}</h1>
         </div>
-        <span className="session-badge">Signed in</span>
+        <nav aria-label="Primary navigation">
+          {product.navigation
+            .filter((item) => !item.roles || hasOrganizationRole(session, item.roles))
+            .map((item) => (
+              <a href={item.path} key={item.id}>{item.label}</a>
+            ))}
+        </nav>
       </header>
-
-      <section className="summary-grid" aria-label="Authenticated user summary">
-        <article>
-          <span>Name</span>
-          <strong>{user?.name ?? 'Unknown'}</strong>
-        </article>
-        <article>
-          <span>Email</span>
-          <strong>{user?.email ?? 'No email returned'}</strong>
-        </article>
-        <article>
-          <span>WorkOS user</span>
-          <strong>{user?.workos_id ?? 'Not linked'}</strong>
-        </article>
-        <article>
-          <span>Organization</span>
-          <strong>
-            {authUser?.workos_organization_id ?? user?.workos_organization_id ?? 'None'}
-          </strong>
-        </article>
-      </section>
-
-      <section className="activity">
-        <div>
-          <h2>Pane connection</h2>
-          <p>Latte owns the login redirect and Pane owns the authenticated session.</p>
-        </div>
-        <code>{paneUrl('/auth/user')}</code>
-      </section>
+      {Page ? <Page context={context} /> : <h2>Page not found</h2>}
     </main>
   )
 }
-
-export default App
