@@ -53,6 +53,10 @@ non-loopback HTTP origins, and unusable Pane URLs stop startup with a configurat
 is intentionally public and must contain no passwords, API keys, connection
 credentials, WorkOS secrets, or invitation tokens.
 
+Root-relative Pane bases use one leading slash and contain no authority, dot
+segments, query, or fragment. Absolute bases are canonical HTTPS URLs, with
+HTTP limited to loopback development hosts.
+
 These values are assertions, not authority. `expectedOrigin` is compared with
 the browser's actual origin. Application and organization UUIDs are compared
 with Pane's `GET /api/v1/session` response. Runtime configuration never selects

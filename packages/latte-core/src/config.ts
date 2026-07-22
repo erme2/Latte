@@ -1,6 +1,13 @@
 import type { LatteRuntimeConfig } from './types.js'
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+const portPattern = '(?:[1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])'
+const dnsLabelPattern = '[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?'
+const httpsHostPattern = `(?:${dnsLabelPattern}(?:\\.${dnsLabelPattern})*|\\[[0-9a-f:.]+\\])`
+const trustedOriginPattern = new RegExp(
+  `^(?:https://${httpsHostPattern}(?::(?!443$)${portPattern})?|http://(?:localhost|127\\.0\\.0\\.1|\\[::1\\])(?::(?!80$)${portPattern})?)$`,
+)
+const relativeBasePattern = /^\/(?!\/)(?:[A-Za-z0-9_~-]+(?:[.-][A-Za-z0-9_~-]+)*(?:\/[A-Za-z0-9_~-]+(?:[.-][A-Za-z0-9_~-]+)*)*)?\/?$/
 
 function objectValue(value: unknown): Record<string, unknown> {
   if (typeof value !== 'object' || value === null || Array.isArray(value)) {
@@ -34,6 +41,12 @@ function paneBaseUrl(config: Record<string, unknown>): string {
   const value = requiredString(config, 'paneBaseUrl')
 
   if (value.startsWith('/')) {
+    if (!relativeBasePattern.test(value)) {
+      throw new Error(
+        'paneBaseUrl must be a normalized root-relative path without an authority, dot segments, query, or fragment.',
+      )
+    }
+
     return value.replace(/\/$/, '') || '/'
   }
 
@@ -45,11 +58,27 @@ function paneBaseUrl(config: Record<string, unknown>): string {
     throw new Error('paneBaseUrl must be a root-relative path or an absolute HTTP(S) URL.')
   }
 
-  if (!['http:', 'https:'].includes(parsed.protocol) || parsed.username || parsed.password) {
-    throw new Error('paneBaseUrl must be a credential-free HTTP(S) URL.')
+  const loopbackHosts = new Set(['localhost', '127.0.0.1', '[::1]'])
+  const httpIsLoopback = parsed.protocol !== 'http:' || loopbackHosts.has(parsed.hostname.toLowerCase())
+  const normalizedPath = parsed.pathname === '/' ? '' : parsed.pathname.replace(/\/$/, '')
+  const canonical = `${parsed.origin}${normalizedPath}`
+
+  if (
+    !['http:', 'https:'].includes(parsed.protocol) ||
+    !httpIsLoopback ||
+    parsed.username ||
+    parsed.password ||
+    parsed.search ||
+    parsed.hash ||
+    !relativeBasePattern.test(parsed.pathname) ||
+    value !== canonical
+  ) {
+    throw new Error(
+      'paneBaseUrl must be a canonical credential-free HTTPS URL, or loopback HTTP URL, without a query or fragment.',
+    )
   }
 
-  return value.replace(/\/$/, '')
+  return canonical
 }
 
 function expectedOrigin(config: Record<string, unknown>): string {
@@ -62,15 +91,11 @@ function expectedOrigin(config: Record<string, unknown>): string {
     throw new Error('expectedOrigin must be a serialized HTTP(S) origin.')
   }
 
-  const loopbackHosts = new Set(['localhost', '127.0.0.1', '[::1]'])
-  const httpIsLoopback = parsed.protocol !== 'http:' || loopbackHosts.has(parsed.hostname.toLowerCase())
-
   if (
-    !['http:', 'https:'].includes(parsed.protocol) ||
-    !httpIsLoopback ||
     parsed.username ||
     parsed.password ||
-    parsed.origin !== value
+    parsed.origin !== value ||
+    !trustedOriginPattern.test(value)
   ) {
     throw new Error('expectedOrigin must be a canonical serialized HTTP(S) origin.')
   }

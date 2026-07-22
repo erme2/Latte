@@ -20,6 +20,11 @@ product features never need to modify authentication internals.
    its public deployment expectations. They are assertions only; Latte never
    asks Pane to select an application or organization.
 
+Callback exchange is single-flight by code and state so React development
+effect replay cannot consume a one-time code twice. A failed callback retry
+removes callback parameters before reloading; Latte then uses an existing Pane
+session or starts a fresh login instead of resubmitting the consumed code.
+
 The Pane Axios client sends cookies and mirrors the encrypted `XSRF-TOKEN`
 cookie in `X-XSRF-TOKEN` for mutations. Authentication URLs must use HTTPS and
 match the exact or wildcard hosts declared by the product manifest. Secrets,

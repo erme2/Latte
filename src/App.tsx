@@ -6,6 +6,7 @@ import {
   createRowService,
   hasOrganizationRole,
   attemptLoginRedirect,
+  callbackRecoveryPath,
   type LatteRuntimeConfig,
   type LatteSession,
 } from '@erme2/latte'
@@ -24,6 +25,16 @@ function callbackValues(): { code: string; state: string } | null {
 
 function redirectUrl(path: string): string {
   return new URL(path, window.location.origin).toString()
+}
+
+function retryAuthentication(defaultPath: string): void {
+  const recoveryPath = callbackRecoveryPath(window.location.search, defaultPath)
+
+  if (recoveryPath) {
+    window.history.replaceState(null, '', recoveryPath)
+  }
+
+  window.location.reload()
 }
 
 function selectedRoute(product: LatteProduct) {
@@ -105,7 +116,11 @@ export default function App({ config, product }: Props) {
           <h1>{message}</h1>
           {authState === 'error' ? (
             <div className="actions">
-              <button className="button" type="button" onClick={() => window.location.reload()}>
+              <button
+                className="button"
+                type="button"
+                onClick={() => retryAuthentication(product.defaultPath)}
+              >
                 Try sign in again
               </button>
             </div>

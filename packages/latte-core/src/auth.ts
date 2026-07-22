@@ -22,6 +22,11 @@ export async function attemptLoginRedirect(beginLogin: () => Promise<void>): Pro
   }
 }
 
+export function callbackRecoveryPath(search: string, defaultPath: string): string | null {
+  const params = new URLSearchParams(search)
+  return params.has('code') || params.has('state') || params.has('error') ? defaultPath : null
+}
+
 export function validateAuthRedirectUrl(value: string, allowedHosts: readonly string[]): string {
   let url: URL
 
@@ -50,6 +55,9 @@ export function createAuthService(
   config: LatteRuntimeConfig,
   allowedAuthHosts: readonly string[] = ['api.workos.com', '*.authkit.app'],
 ) {
+  const callbackRequests = new Map<string, Promise<LatteSession>>()
+  const completedCallbacks = new Map<string, LatteSession>()
+
   return {
     async session(): Promise<LatteSession> {
       const { data } = await pane.get<LatteSession>('/session')
@@ -66,9 +74,37 @@ export function createAuthService(
       window.location.assign(validateAuthRedirectUrl(data.data.authorization_url, allowedAuthHosts))
     },
 
-    async completeLogin(code: string, state: string): Promise<LatteSession> {
-      const { data } = await pane.post<LatteSession>('/auth/callback', { code, state })
-      return assertLatteSession(data, config)
+    completeLogin(code: string, state: string): Promise<LatteSession> {
+      const key = JSON.stringify([code, state])
+      const completed = completedCallbacks.get(key)
+
+      if (completed) {
+        return Promise.resolve(completed)
+      }
+
+      const inFlight = callbackRequests.get(key)
+
+      if (inFlight) {
+        return inFlight
+      }
+
+      const request = pane
+        .post<LatteSession>('/auth/callback', { code, state })
+        .then(({ data }) => assertLatteSession(data, config))
+      const tracked = request.then(
+        (session) => {
+          callbackRequests.delete(key)
+          completedCallbacks.set(key, session)
+          return session
+        },
+        (error: unknown) => {
+          callbackRequests.delete(key)
+          throw error
+        },
+      )
+
+      callbackRequests.set(key, tracked)
+      return tracked
     },
 
     async logout(): Promise<void> {

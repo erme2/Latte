@@ -1,4 +1,9 @@
-export { attemptLoginRedirect, createAuthService, validateAuthRedirectUrl } from './auth.js'
+export {
+  attemptLoginRedirect,
+  callbackRecoveryPath,
+  createAuthService,
+  validateAuthRedirectUrl,
+} from './auth.js'
 export type { LoginRedirectResult } from './auth.js'
 export { createPaneClient } from './client.js'
 export { assertBrowserOrigin, loadLatteRuntimeConfig, parseLatteRuntimeConfig } from './config.js'

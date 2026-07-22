@@ -4,6 +4,7 @@ import {
   assertBrowserOrigin,
   assertLatteSession,
   attemptLoginRedirect,
+  createPaneClient,
   parseLatteRuntimeConfig,
 } from '../packages/latte-core/dist/index.js'
 
@@ -42,10 +43,45 @@ for (const rejectedOrigin of [
   'https://Example.test',
   'https://example.test:443',
   'https://user@example.test',
+  'https://example.test.',
+  'https://foo_bar.example',
+  'https://-bad.example',
+  'https://bad-.example',
 ]) {
   assert.throws(
     () => parseLatteRuntimeConfig({ ...config, expectedOrigin: rejectedOrigin }),
     /expectedOrigin/,
+  )
+}
+
+for (const [paneBaseUrl, expected] of [
+  ['/', '/api/v1'],
+  ['/pane', '/pane/api/v1'],
+  ['/pane/', '/pane/api/v1'],
+  ['https://pane.example', 'https://pane.example/api/v1'],
+  ['https://pane.example/gateway', 'https://pane.example/gateway/api/v1'],
+  ['http://localhost:8000', 'http://localhost:8000/api/v1'],
+]) {
+  const parsed = parseLatteRuntimeConfig({ ...config, paneBaseUrl })
+  assert.equal(createPaneClient(parsed).defaults.baseURL, expected)
+}
+
+for (const rejectedBaseUrl of [
+  '//evil.example',
+  '/pane?target=evil',
+  '/pane#fragment',
+  '/pane/../api',
+  'http://pane.example',
+  'HTTPS://pane.example',
+  'https://pane.example:443',
+  'https://pane.example/gateway/',
+  'https://pane.example//gateway',
+  'https://pane.example/gateway/../api',
+  'https://user@pane.example',
+]) {
+  assert.throws(
+    () => parseLatteRuntimeConfig({ ...config, paneBaseUrl: rejectedBaseUrl }),
+    /paneBaseUrl/,
   )
 }
 assert.throws(
