@@ -7,6 +7,7 @@ import {
   hasOrganizationRole,
   attemptLoginRedirect,
   callbackRecoveryPath,
+  resolveInitialAuthentication,
   type LatteRuntimeConfig,
   type LatteSession,
 } from '@erme2/latte'
@@ -14,14 +15,6 @@ import type { LatteProduct, ProductContext } from './product/contract'
 import './App.css'
 
 type AuthState = 'checking' | 'authenticated' | 'redirecting' | 'error'
-
-function callbackValues(): { code: string; state: string } | null {
-  const params = new URLSearchParams(window.location.search)
-  const code = params.get('code')
-  const state = params.get('state')
-
-  return code && state ? { code, state } : null
-}
 
 function redirectUrl(path: string): string {
   return new URL(path, window.location.origin).toString()
@@ -67,16 +60,20 @@ export default function App({ config, product }: Props) {
 
     async function authenticate(): Promise<void> {
       try {
-        const callback = callbackValues()
-        const result = callback
-          ? await platform.auth.completeLogin(callback.code, callback.state)
-          : await platform.auth.session()
+        const initial = await resolveInitialAuthentication(window.location.search, platform.auth)
 
         if (!active) return
-        setSession(result)
+
+        if (initial.status === 'error') {
+          setAuthState('error')
+          setMessage(initial.message)
+          return
+        }
+
+        setSession(initial.session)
         setAuthState('authenticated')
 
-        if (callback) {
+        if (initial.fromCallback) {
           window.history.replaceState(null, '', product.defaultPath)
         }
       } catch (error) {

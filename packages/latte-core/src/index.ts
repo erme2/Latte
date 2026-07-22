@@ -2,9 +2,10 @@ export {
   attemptLoginRedirect,
   callbackRecoveryPath,
   createAuthService,
+  resolveInitialAuthentication,
   validateAuthRedirectUrl,
 } from './auth.js'
-export type { LoginRedirectResult } from './auth.js'
+export type { InitialAuthenticationResult, LoginRedirectResult } from './auth.js'
 export { createPaneClient } from './client.js'
 export { assertBrowserOrigin, loadLatteRuntimeConfig, parseLatteRuntimeConfig } from './config.js'
 export { createRowService } from './crud.js'

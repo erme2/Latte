@@ -10,6 +10,15 @@ export type LoginRedirectResult =
   | { status: 'redirecting' }
   | { status: 'error'; message: string }
 
+export type InitialAuthenticationResult =
+  | { status: 'authenticated'; session: LatteSession; fromCallback: boolean }
+  | { status: 'error'; message: string }
+
+type InitialAuthService = {
+  session(): Promise<LatteSession>
+  completeLogin(code: string, state: string): Promise<LatteSession>
+}
+
 export async function attemptLoginRedirect(beginLogin: () => Promise<void>): Promise<LoginRedirectResult> {
   try {
     await beginLogin()
@@ -25,6 +34,52 @@ export async function attemptLoginRedirect(beginLogin: () => Promise<void>): Pro
 export function callbackRecoveryPath(search: string, defaultPath: string): string | null {
   const params = new URLSearchParams(search)
   return params.has('code') || params.has('state') || params.has('error') ? defaultPath : null
+}
+
+export async function resolveInitialAuthentication(
+  search: string,
+  auth: InitialAuthService,
+): Promise<InitialAuthenticationResult> {
+  const params = new URLSearchParams(search)
+  const providerError = params.get('error')
+  const code = params.get('code')
+  const state = params.get('state')
+  const hasCallbackInput =
+    providerError !== null ||
+    params.has('error_description') ||
+    code !== null ||
+    state !== null
+
+  if (providerError !== null) {
+    return {
+      status: 'error',
+      message: providerError === 'access_denied'
+        ? 'Sign in was cancelled.'
+        : 'The identity provider could not complete sign in.',
+    }
+  }
+
+  if (hasCallbackInput && (!code || !state)) {
+    return { status: 'error', message: 'The authentication callback is incomplete.' }
+  }
+
+  if (code && state) {
+    try {
+      return {
+        status: 'authenticated',
+        session: await auth.completeLogin(code, state),
+        fromCallback: true,
+      }
+    } catch {
+      return { status: 'error', message: 'Unable to complete sign in.' }
+    }
+  }
+
+  return {
+    status: 'authenticated',
+    session: await auth.session(),
+    fromCallback: false,
+  }
 }
 
 export function validateAuthRedirectUrl(value: string, allowedHosts: readonly string[]): string {

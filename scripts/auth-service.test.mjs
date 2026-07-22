@@ -1,6 +1,10 @@
 import assert from 'node:assert/strict'
 import axios from 'axios'
-import { callbackRecoveryPath, createAuthService } from '../packages/latte-core/dist/index.js'
+import {
+  callbackRecoveryPath,
+  createAuthService,
+  resolveInitialAuthentication,
+} from '../packages/latte-core/dist/index.js'
 
 const applicationId = '01900000-0000-7000-8000-000000000001'
 const organizationId = '01900000-0000-7000-8000-000000000002'
@@ -94,3 +98,55 @@ assert.equal(failedPosts, 2)
 assert.equal(callbackRecoveryPath('?code=consumed&state=old', '/dashboard'), '/dashboard')
 assert.equal(callbackRecoveryPath('?error=access_denied', '/dashboard'), '/dashboard')
 assert.equal(callbackRecoveryPath('?page=2', '/dashboard'), null)
+
+let sessionReads = 0
+let callbackExchanges = 0
+const initialAuth = {
+  async session() {
+    sessionReads += 1
+    return session
+  },
+  async completeLogin() {
+    callbackExchanges += 1
+    return session
+  },
+}
+
+for (const search of [
+  '?error=access_denied&error_description=No&state=provider-state',
+  '?error=server_error&state=provider-state',
+  '?code=missing-state',
+  '?state=missing-code',
+  '?error_description=missing-error-code',
+]) {
+  const result = await resolveInitialAuthentication(search, initialAuth)
+  assert.equal(result.status, 'error')
+}
+assert.equal(sessionReads, 0)
+assert.equal(callbackExchanges, 0)
+
+assert.deepEqual(await resolveInitialAuthentication('', initialAuth), {
+  status: 'authenticated',
+  session,
+  fromCallback: false,
+})
+assert.equal(sessionReads, 1)
+
+assert.deepEqual(
+  await resolveInitialAuthentication('?code=valid-code&state=valid-state', initialAuth),
+  { status: 'authenticated', session, fromCallback: true },
+)
+assert.equal(callbackExchanges, 1)
+
+const failedCallback = await resolveInitialAuthentication(
+  '?code=consumed&state=valid-state',
+  {
+    async session() {
+      throw new Error('session must not be read')
+    },
+    async completeLogin() {
+      throw new Error('code consumed')
+    },
+  },
+)
+assert.deepEqual(failedCallback, { status: 'error', message: 'Unable to complete sign in.' })

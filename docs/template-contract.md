@@ -69,11 +69,15 @@ development-server configuration and are not application runtime state.
 
 ## Creating a derived application
 
-1. Create a new repository from Latte's GitHub template and clone it.
+1. Use GitHub's **Use this template** action on `erme2/Latte` to create an
+   independent repository, then clone it.
 2. Replace the root package name, `src/product/manifest.tsx`, page components,
    public assets, styles, and the example runtime configuration.
-3. Keep `@erme2/latte` as a normal npm dependency once the first public version
-   is published; remove the starter's local `file:packages/latte-core` link.
+3. After the first public package version is published, replace
+   `"@erme2/latte": "file:packages/latte-core"` with the intended compatible
+   npm range (initially `"^0.1.0"`), remove the root `workspaces` entry, delete
+   the copied `packages/latte-core` directory, and run `npm install`. Confirm
+   `npm ls @erme2/latte` resolves from npm rather than a workspace link.
 4. Register each deployment origin, redirect URI, fixed organization, and
    application in Pane. Copy the resulting public UUID expectations into the
    deployment configuration.

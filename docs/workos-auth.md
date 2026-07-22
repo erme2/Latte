@@ -14,6 +14,8 @@ product features never need to modify authentication internals.
    authorization URL.
 5. WorkOS redirects to the Latte callback with `code` and `state`. Latte sends
    both to `POST /api/v1/auth/callback` without interpreting the state.
+   Provider error or incomplete callbacks stop locally with a safe message and
+   make no Pane request until the user explicitly retries.
 6. Pane validates state and identity, creates the session, and returns the
    Latte session resource.
 7. Latte verifies that the returned application and organization UUIDs match
