@@ -19,6 +19,12 @@ administration console for Pane administrators. See
 [Pane, Latte, and Burro Product Architecture](docs/product-architecture.md) for
 the agreed phase-one product and security boundaries.
 
+Latte is both a project starter and the home of the public, headless
+`@erme2/latte` package. Derived applications own their appearance and product
+pages while upgrading the package to receive shared authentication, Pane API,
+configuration, authorization-state, and CRUD fixes. See the
+[template and extension contract](docs/template-contract.md).
+
 ## Setup
 
 Create a local env file for running Latte outside Docker:
@@ -38,13 +44,20 @@ Latte only allows the Vite `/pane` proxy to target expected local Pane endpoints
 
 `VITE_PANE_PROXY_TARGET` must be an `http` or `https` origin for an expected local Pane host. `VITE_PANE_PROXY_HOST` is optional, but when set it must be an expected Pane Host header such as `pane.localhost`. `VITE_PANE_PROXY_VERIFY_TLS` defaults to `true`; set it to `false` only for local development targets that use a self-signed certificate or a container DNS name that cannot pass normal certificate verification.
 
-Latte validates the login URL returned by Pane before redirecting the browser. By default, redirects are allowed only to `https://api.workos.com` and `https://*.authkit.app`. Set `VITE_AUTH_REDIRECT_ALLOWED_HOSTS` to a comma-separated list of extra trusted authentication hosts when using a custom WorkOS/AuthKit domain, for example `login.example.com,*.auth.example.com`.
+Latte validates the login URL returned by Pane before redirecting the browser.
+The product manifest allows `api.workos.com` and `*.authkit.app` by default;
+derived applications add custom authentication domains to that typed allowlist.
 
 Pane should also allow the Latte-derived application as its frontend origin:
 
 ```dotenv
 FRONTEND_URL=http://localhost:5173
 ```
+
+Copy `public/latte-config.json` for each deployment and replace its example
+application UUID, organization UUID, and origin with the public values from the
+Pane registration. The file contains assertions only and must never contain
+secrets.
 
 ## Run Locally
 
@@ -53,7 +66,10 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:5173`. Latte calls Pane through Vite's `/pane` proxy, avoiding cross-origin browser requests. It checks `GET /auth/user`; if there is no active Laravel session, it calls `GET /auth/login-url`, redirects the browser to the returned WorkOS AuthKit URL, receives the WorkOS callback, and posts the callback params to `POST /auth/callback`. Pane then creates the Laravel session and Latte stores a small user snapshot in `sessionStorage`.
+Open `http://localhost:5173`. Latte calls Pane through Vite's `/pane` proxy,
+loads `GET /api/v1/session`, creates a login intent when authentication is
+required, and forwards the WorkOS callback to Pane. Pane owns the application,
+organization, OAuth state, and authenticated session.
 
 Pane owns server-side OAuth state validation. Latte forwards the callback state to Pane, and Pane rejects missing or mismatched state before completing login.
 

@@ -1,0 +1,6 @@
+{
+  "paneBaseUrl": "/pane",
+  "expectedApplicationId": "00000000-0000-4000-8000-000000000001",
+  "expectedOrganizationId": "00000000-0000-4000-8000-000000000002",
+  "expectedOrigin": "http://localhost:5173"
+}

@@ -1,0 +1,117 @@
+# Latte template and extension contract
+
+Latte has two deliberately different distribution boundaries:
+
+- this repository is a starter used to create a new, independently branded
+  application repository;
+- the public [`@erme2/latte`](../packages/latte-core/README.md) npm package is
+  the versioned, headless Pane integration upgraded by every derived app.
+
+This avoids copying security-sensitive integration code into repositories that
+then drift apart. It also avoids putting product pages and visual identity into
+a shared dependency.
+
+## Ownership boundary
+
+`@erme2/latte` owns:
+
+- loading and validating public deployment configuration;
+- the credentialed Pane `/api/v1` HTTP client and CSRF behavior;
+- login intents, callbacks, session loading, and logout;
+- verification that Pane's trusted session application and organization match
+  the deployment's public expectations;
+- organization role helpers and generic Pane row CRUD services.
+
+Row create and update operations send Pane's exact `{ "values": ... }` write
+shape. Item reads and writes return both the response document and its strong
+`ETag`; callers pass that validator back for update and delete preconditions.
+
+The derived application owns `src/product/manifest.tsx`, its page components,
+styles, assets, product API services, and tests. The typed manifest is the
+stable extension point for branding, authentication redirect hosts, routes,
+navigation, pages, role-aware visibility, and an explicit `createServices`
+factory. Latte calls that factory once after validated configuration and Pane
+client creation, then injects its inferred service type into every page.
+Normal product work must not edit package authentication, session, tenant
+validation, or Pane client internals.
+
+Route patterns use named whole-segment parameters such as
+`/connections/:connectionId`. Page context receives decoded values in
+`context.params`. Invalid encodings and unmatched paths render the product's
+`notFoundPage`; role mismatches render `forbiddenPage` without invoking the
+page. Navigation targets are concrete paths that must match a declared route.
+
+Role-aware routes and navigation are a usability boundary only. Pane remains
+the sole authorization authority for every API request.
+
+## Runtime configuration
+
+Deployments serve `/latte-config.json` before React starts:
+
+```json
+{
+  "paneBaseUrl": "/pane",
+  "expectedApplicationId": "01900000-0000-7000-8000-000000000001",
+  "expectedOrganizationId": "01900000-0000-7000-8000-000000000002",
+  "expectedOrigin": "https://app.example.test"
+}
+```
+
+All fields are required. Unknown fields, invalid UUIDs, non-canonical origins,
+non-loopback HTTP origins, and unusable Pane URLs stop startup with a configuration error. Configuration
+is intentionally public and must contain no passwords, API keys, connection
+credentials, WorkOS secrets, or invitation tokens.
+
+Root-relative Pane bases use one leading slash and contain no authority, dot
+segments, query, or fragment. Absolute bases are canonical HTTPS URLs, with
+HTTP limited to loopback development hosts.
+
+These values are assertions, not authority. `expectedOrigin` is compared with
+the browser's actual origin. Application and organization UUIDs are compared
+with Pane's `GET /api/v1/session` response. Runtime configuration never selects
+an application or organization: Pane resolves the application from trusted
+Origin/session state and fixes the organization server-side.
+
+The same built assets can therefore be deployed in multiple environments by
+replacing only this public file. Vite's `VITE_PANE_PROXY_*` variables remain
+development-server configuration and are not application runtime state.
+
+## Creating a derived application
+
+1. Use GitHub's **Use this template** action on `erme2/Latte` to create an
+   independent repository, then clone it.
+2. Replace the root package name, `src/product/manifest.tsx`, page components,
+   public assets, styles, and the example runtime configuration.
+3. After the first public package version is published, replace
+   `"@erme2/latte": "file:packages/latte-core"` with the intended compatible
+   npm range (initially `"^0.1.0"`), remove the root `workspaces` entry, delete
+   the copied `packages/latte-core` directory, and run `npm install`. Confirm
+   `npm ls @erme2/latte` resolves from npm rather than a workspace link.
+4. Register each deployment origin, redirect URI, fixed organization, and
+   application in Pane. Copy the resulting public UUID expectations into the
+   deployment configuration.
+5. Run `npm test`, `npm run lint`, and `npm run build` before deployment.
+
+Derived repositories do not retain Burro identity or installation-administrator
+behavior. Burro is a separate Latte-derived product with its own manifest.
+
+## Receiving Latte updates
+
+Shared behavior follows semantic versions of the npm package. A derived app
+updates with:
+
+```bash
+npm update @erme2/latte
+npm test
+npm run build
+```
+
+Patch releases contain compatible fixes, minor releases add compatible APIs,
+and major releases may require a documented migration. Dependency automation
+may open these upgrades across all derived repositories. Security fixes should
+be released as a new package version rather than copied between applications.
+
+Starter-only improvements are intentionally opt-in. They are documented as
+small migration recipes rather than merging the entire Latte repository into
+every product. Product repositories may add Latte as a read-only upstream for
+inspection, but package upgrades are the supported shared-update mechanism.
