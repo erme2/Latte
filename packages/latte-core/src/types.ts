@@ -21,23 +21,38 @@ export type Resource<TType extends string, TAttributes> = {
 export type LatteSession = {
   data: {
     mode: 'latte'
-    user: Resource<'user', Record<string, unknown>>
+    user: Resource<'user', { email: string; name: string }>
     application: Resource<
       'application',
       {
         kind: 'latte'
-        organization_id: string
         name: string
-        status: 'active'
+        trusted_origin: string
+        redirect_uris: string[]
+        status: 'active' | 'disabled'
+        created_at: string
+        updated_at: string
       }
     >
     organization: Resource<
       'organization',
-      { name: string; slug: string; status: 'active' }
+      {
+        name: string
+        slug: string
+        status: 'active' | 'suspended' | 'closed'
+        database_limit: number
+        created_at: string
+        updated_at: string
+      }
     >
     membership: Resource<
       'membership',
-      { organization_id: string; role: OrganizationRole; status: 'active' }
+      {
+        role: OrganizationRole
+        status: 'active' | 'suspended'
+        created_at: string
+        updated_at: string
+      }
     >
   }
   meta: { request_id: string }
@@ -54,4 +69,9 @@ export type CollectionResponse<T> = {
 export type ItemResponse<T> = {
   data: T
   meta: { request_id: string }
+}
+
+export type VersionedItemResponse<T> = {
+  document: ItemResponse<T>
+  etag: string
 }

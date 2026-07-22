@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs'
 import {
   assertBrowserOrigin,
   assertLatteSession,
+  attemptLoginRedirect,
   parseLatteRuntimeConfig,
 } from '../packages/latte-core/dist/index.js'
 
@@ -22,6 +23,31 @@ assert.throws(
   () => parseLatteRuntimeConfig({ ...config, clientSecret: 'never' }),
   /Unknown Latte runtime configuration: clientSecret/,
 )
+
+for (const acceptedOrigin of [
+  'https://example.test',
+  'https://example.test:8443',
+  'http://localhost:5173',
+  'http://127.0.0.1:5173',
+  'http://[::1]:5173',
+]) {
+  assert.equal(
+    parseLatteRuntimeConfig({ ...config, expectedOrigin: acceptedOrigin }).expectedOrigin,
+    acceptedOrigin,
+  )
+}
+
+for (const rejectedOrigin of [
+  'http://example.test',
+  'https://Example.test',
+  'https://example.test:443',
+  'https://user@example.test',
+]) {
+  assert.throws(
+    () => parseLatteRuntimeConfig({ ...config, expectedOrigin: rejectedOrigin }),
+    /expectedOrigin/,
+  )
+}
 assert.throws(
   () => parseLatteRuntimeConfig({ ...config, expectedOrganizationId: 'not-a-uuid' }),
   /must be a UUID/,
@@ -30,21 +56,41 @@ assert.throws(
 const session = {
   data: {
     mode: 'latte',
-    user: { id: 'u', type: 'user', attributes: {} },
+    user: { id: 'u', type: 'user', attributes: { email: 'user@example.test', name: 'User' } },
     application: {
       id: applicationId,
       type: 'application',
-      attributes: { kind: 'latte', organization_id: organizationId, name: 'Example', status: 'active' },
+      attributes: {
+        kind: 'latte',
+        name: 'Example',
+        trusted_origin: 'https://example.test',
+        redirect_uris: ['https://example.test/callback'],
+        status: 'active',
+        created_at: '2026-07-22T00:00:00Z',
+        updated_at: '2026-07-22T00:00:00Z',
+      },
     },
     organization: {
       id: organizationId,
       type: 'organization',
-      attributes: { name: 'Example', slug: 'example', status: 'active' },
+      attributes: {
+        name: 'Example',
+        slug: 'example',
+        status: 'active',
+        database_limit: 1,
+        created_at: '2026-07-22T00:00:00Z',
+        updated_at: '2026-07-22T00:00:00Z',
+      },
     },
     membership: {
       id: 'm',
       type: 'membership',
-      attributes: { organization_id: organizationId, role: 'organization_user', status: 'active' },
+      attributes: {
+        role: 'organization_user',
+        status: 'active',
+        created_at: '2026-07-22T00:00:00Z',
+        updated_at: '2026-07-22T00:00:00Z',
+      },
     },
   },
   meta: { request_id: 'r' },
@@ -54,6 +100,12 @@ assert.equal(assertLatteSession(session, config), session)
 assert.throws(
   () => assertLatteSession({ ...session, data: { ...session.data, organization: { ...session.data.organization, id: applicationId } } }, config),
   /organization does not match/,
+)
+
+assert.deepEqual(await attemptLoginRedirect(async () => {}), { status: 'redirecting' })
+assert.deepEqual(
+  await attemptLoginRedirect(async () => { throw new Error('Origin rejected') }),
+  { status: 'error', message: 'Origin rejected' },
 )
 
 const rootPackage = JSON.parse(readFileSync('package.json', 'utf8'))

@@ -5,6 +5,7 @@ import {
   createPaneClient,
   createRowService,
   hasOrganizationRole,
+  attemptLoginRedirect,
   type LatteRuntimeConfig,
   type LatteSession,
 } from '@erme2/latte'
@@ -73,7 +74,14 @@ export default function App({ config, product }: Props) {
         if (error instanceof AxiosError && error.response?.status === 401) {
           setAuthState('redirecting')
           setMessage('Redirecting to sign in')
-          await platform.auth.beginLogin(redirectUrl(window.location.pathname))
+          const result = await attemptLoginRedirect(() =>
+            platform.auth.beginLogin(redirectUrl(window.location.pathname)),
+          )
+
+          if (result.status === 'error' && active) {
+            setAuthState('error')
+            setMessage(result.message)
+          }
           return
         }
 
@@ -95,6 +103,13 @@ export default function App({ config, product }: Props) {
           <span className="status-dot" data-state={authState} />
           <p className="eyebrow">{product.brand.name}</p>
           <h1>{message}</h1>
+          {authState === 'error' ? (
+            <div className="actions">
+              <button className="button" type="button" onClick={() => window.location.reload()}>
+                Try sign in again
+              </button>
+            </div>
+          ) : null}
         </section>
       </main>
     )

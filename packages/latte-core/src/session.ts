@@ -12,11 +12,7 @@ export function assertLatteSession(
     throw new Error('Pane session application does not match this deployment.')
   }
 
-  if (
-    session.data.application.attributes.organization_id !== config.expectedOrganizationId ||
-    session.data.organization.id !== config.expectedOrganizationId ||
-    session.data.membership.attributes.organization_id !== config.expectedOrganizationId
-  ) {
+  if (session.data.organization.id !== config.expectedOrganizationId) {
     throw new Error('Pane session organization does not match this deployment.')
   }
 

@@ -1,8 +1,27 @@
-import type { AxiosInstance } from 'axios'
-import type { CollectionResponse, ItemResponse, LatteRuntimeConfig } from './types.js'
+import type { AxiosInstance, AxiosResponse } from 'axios'
+import type {
+  CollectionResponse,
+  ItemResponse,
+  LatteRuntimeConfig,
+  VersionedItemResponse,
+} from './types.js'
+
+export type PaneRowValue = string | number | boolean | null
+export type PaneRowValues = Record<string, PaneRowValue>
 
 function segment(value: string): string {
   return encodeURIComponent(value)
+}
+
+function versioned<T>(response: AxiosResponse<ItemResponse<T>>): VersionedItemResponse<T> {
+  const headers = response.headers as unknown as Record<string, unknown>
+  const etag = headers.etag ?? headers.ETag
+
+  if (typeof etag !== 'string' || etag === '') {
+    throw new Error('Pane row response did not include the required ETag header.')
+  }
+
+  return { document: response.data, etag }
 }
 
 export function createRowService(pane: AxiosInstance, config: LatteRuntimeConfig) {
@@ -18,32 +37,32 @@ export function createRowService(pane: AxiosInstance, config: LatteRuntimeConfig
     },
 
     async get<T>(connectionId: string, tableId: string, rowKey: string) {
-      const { data } = await pane.get<ItemResponse<T>>(
+      const response = await pane.get<ItemResponse<T>>(
         `${collectionPath(connectionId, tableId)}/${segment(rowKey)}`,
       )
-      return data
+      return versioned(response)
     },
 
-    async create<T>(connectionId: string, tableId: string, attributes: Record<string, unknown>) {
-      const { data } = await pane.post<ItemResponse<T>>(collectionPath(connectionId, tableId), {
-        data: { type: 'row', attributes },
+    async create<T>(connectionId: string, tableId: string, values: PaneRowValues) {
+      const response = await pane.post<ItemResponse<T>>(collectionPath(connectionId, tableId), {
+        values,
       })
-      return data
+      return versioned(response)
     },
 
     async update<T>(
       connectionId: string,
       tableId: string,
       rowKey: string,
-      attributes: Record<string, unknown>,
+      values: PaneRowValues,
       etag: string,
     ) {
-      const { data } = await pane.patch<ItemResponse<T>>(
+      const response = await pane.patch<ItemResponse<T>>(
         `${collectionPath(connectionId, tableId)}/${segment(rowKey)}`,
-        { data: { type: 'row', attributes } },
+        { values },
         { headers: { 'If-Match': etag } },
       )
-      return data
+      return versioned(response)
     },
 
     async remove(connectionId: string, tableId: string, rowKey: string, etag: string) {

@@ -6,6 +6,22 @@ type LoginIntentResponse = {
   data: { authorization_url: string; state: string }
 }
 
+export type LoginRedirectResult =
+  | { status: 'redirecting' }
+  | { status: 'error'; message: string }
+
+export async function attemptLoginRedirect(beginLogin: () => Promise<void>): Promise<LoginRedirectResult> {
+  try {
+    await beginLogin()
+    return { status: 'redirecting' }
+  } catch (error) {
+    return {
+      status: 'error',
+      message: error instanceof Error ? error.message : 'Unable to start sign in',
+    }
+  }
+}
+
 export function validateAuthRedirectUrl(value: string, allowedHosts: readonly string[]): string {
   let url: URL
 

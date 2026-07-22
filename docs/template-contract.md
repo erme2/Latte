@@ -22,6 +22,10 @@ a shared dependency.
   the deployment's public expectations;
 - organization role helpers and generic Pane row CRUD services.
 
+Row create and update operations send Pane's exact `{ "values": ... }` write
+shape. Item reads and writes return both the response document and its strong
+`ETag`; callers pass that validator back for update and delete preconditions.
+
 The derived application owns `src/product/manifest.tsx`, its page components,
 styles, assets, product API services, and tests. The typed manifest is the
 stable extension point for branding, authentication redirect hosts, routes,
@@ -45,7 +49,7 @@ Deployments serve `/latte-config.json` before React starts:
 ```
 
 All fields are required. Unknown fields, invalid UUIDs, non-canonical origins,
-and unusable Pane URLs stop startup with a configuration error. Configuration
+non-loopback HTTP origins, and unusable Pane URLs stop startup with a configuration error. Configuration
 is intentionally public and must contain no passwords, API keys, connection
 credentials, WorkOS secrets, or invitation tokens.
 

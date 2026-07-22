@@ -62,7 +62,16 @@ function expectedOrigin(config: Record<string, unknown>): string {
     throw new Error('expectedOrigin must be a serialized HTTP(S) origin.')
   }
 
-  if (!['http:', 'https:'].includes(parsed.protocol) || parsed.origin !== value) {
+  const loopbackHosts = new Set(['localhost', '127.0.0.1', '[::1]'])
+  const httpIsLoopback = parsed.protocol !== 'http:' || loopbackHosts.has(parsed.hostname.toLowerCase())
+
+  if (
+    !['http:', 'https:'].includes(parsed.protocol) ||
+    !httpIsLoopback ||
+    parsed.username ||
+    parsed.password ||
+    parsed.origin !== value
+  ) {
     throw new Error('expectedOrigin must be a canonical serialized HTTP(S) origin.')
   }
 
