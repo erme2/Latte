@@ -29,8 +29,17 @@ shape. Item reads and writes return both the response document and its strong
 The derived application owns `src/product/manifest.tsx`, its page components,
 styles, assets, product API services, and tests. The typed manifest is the
 stable extension point for branding, authentication redirect hosts, routes,
-navigation, pages, and role-aware visibility. Normal product work must not edit
-package authentication, session, tenant validation, or Pane client internals.
+navigation, pages, role-aware visibility, and an explicit `createServices`
+factory. Latte calls that factory once after validated configuration and Pane
+client creation, then injects its inferred service type into every page.
+Normal product work must not edit package authentication, session, tenant
+validation, or Pane client internals.
+
+Route patterns use named whole-segment parameters such as
+`/connections/:connectionId`. Page context receives decoded values in
+`context.params`. Invalid encodings and unmatched paths render the product's
+`notFoundPage`; role mismatches render `forbiddenPage` without invoking the
+page. Navigation targets are concrete paths that must match a declared route.
 
 Role-aware routes and navigation are a usability boundary only. Pane remains
 the sole authorization authority for every API request.

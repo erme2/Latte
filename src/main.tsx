@@ -4,6 +4,7 @@ import { assertBrowserOrigin, loadLatteRuntimeConfig } from '@erme2/latte'
 import App from './App'
 import './index.css'
 import { product } from './product/manifest'
+import { createLatteRuntime } from './product/contract'
 
 const root = createRoot(document.getElementById('root')!)
 
@@ -11,9 +12,10 @@ async function start(): Promise<void> {
   try {
     const config = await loadLatteRuntimeConfig()
     assertBrowserOrigin(config, window.location.origin)
+    const runtime = createLatteRuntime(config, product)
     root.render(
       <StrictMode>
-        <App config={config} product={product} />
+        <App runtime={runtime} product={product} />
       </StrictMode>,
     )
   } catch (error) {

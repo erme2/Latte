@@ -1,25 +1,39 @@
 import type { AxiosInstance } from 'axios'
-import type {
+import {
+  createAuthService,
+  createPaneClient,
   createRowService,
-  LatteRuntimeConfig,
-  LatteSession,
-  OrganizationRole,
+  type LatteRuntimeConfig,
+  type LatteSession,
+  type OrganizationRole,
 } from '@erme2/latte'
 import type { ComponentType } from 'react'
+import {
+  createProductServices,
+  matchRoutePattern,
+  validateRoutePattern,
+} from './runtime.mjs'
 
-export type ProductContext = {
+export type PlatformContext = {
   config: LatteRuntimeConfig
   pane: AxiosInstance
   rows: ReturnType<typeof createRowService>
-  session: LatteSession
 }
 
-export type ProductPageProps = { context: ProductContext }
+export type ProductContext<Services extends object> = PlatformContext & {
+  services: Services
+  session: LatteSession
+  params: Readonly<Record<string, string>>
+}
 
-export type ProductRoute = {
+export type ProductPageProps<Services extends object> = {
+  context: ProductContext<Services>
+}
+
+export type ProductRoute<Services extends object> = {
   id: string
   path: `/${string}`
-  component: ComponentType<ProductPageProps>
+  component: ComponentType<ProductPageProps<Services>>
   roles?: readonly OrganizationRole[]
 }
 
@@ -30,20 +44,44 @@ export type NavigationItem = {
   roles?: readonly OrganizationRole[]
 }
 
-export type LatteProduct = {
+export type LatteProduct<Services extends object> = {
   brand: { name: string; tagline: string }
   authenticationHosts: readonly string[]
   defaultPath: `/${string}`
-  routes: readonly ProductRoute[]
+  createServices(platform: PlatformContext): Services
+  routes: readonly ProductRoute<Services>[]
   navigation: readonly NavigationItem[]
-  forbiddenPage: ComponentType<ProductPageProps>
+  forbiddenPage: ComponentType<ProductPageProps<Services>>
+  notFoundPage: ComponentType<ProductPageProps<Services>>
 }
 
-export function defineLatteProduct(product: LatteProduct): LatteProduct {
+export type LatteRuntime<Services extends object> = PlatformContext & {
+  auth: ReturnType<typeof createAuthService>
+  services: Services
+}
+
+export function createLatteRuntime<Services extends object>(
+  config: LatteRuntimeConfig,
+  product: LatteProduct<Services>,
+): LatteRuntime<Services> {
+  const pane = createPaneClient(config)
+  const platform = { config, pane, rows: createRowService(pane, config) }
+
+  return {
+    ...platform,
+    auth: createAuthService(pane, config, product.authenticationHosts),
+    services: createProductServices(product.createServices, platform),
+  }
+}
+
+export function defineLatteProduct<Services extends object>(
+  product: LatteProduct<Services>,
+): LatteProduct<Services> {
   const routeIds = new Set<string>()
   const routePaths = new Set<string>()
 
   for (const route of product.routes) {
+    validateRoutePattern(route.path)
     if (routeIds.has(route.id) || routePaths.has(route.path)) {
       throw new Error(`Duplicate product route: ${route.id} (${route.path}).`)
     }
@@ -51,12 +89,17 @@ export function defineLatteProduct(product: LatteProduct): LatteProduct {
     routePaths.add(route.path)
   }
 
-  if (!routePaths.has(product.defaultPath)) {
-    throw new Error('The product defaultPath must identify a declared route.')
+  if (!product.routes.some((route) => matchRoutePattern(route.path, product.defaultPath))) {
+    throw new Error('The product defaultPath must match a declared route.')
   }
 
+  const navigationIds = new Set<string>()
   for (const item of product.navigation) {
-    if (!routePaths.has(item.path)) {
+    if (navigationIds.has(item.id)) {
+      throw new Error(`Duplicate navigation item: ${item.id}.`)
+    }
+    navigationIds.add(item.id)
+    if (!product.routes.some((route) => matchRoutePattern(route.path, item.path))) {
       throw new Error(`Navigation item ${item.id} points to an undeclared route.`)
     }
   }

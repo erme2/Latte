@@ -1,17 +1,14 @@
-import { AxiosError, type AxiosInstance } from 'axios'
-import { useEffect, useMemo, useState } from 'react'
+import { AxiosError } from 'axios'
+import { useEffect, useState } from 'react'
 import {
-  createAuthService,
-  createPaneClient,
-  createRowService,
-  hasOrganizationRole,
   attemptLoginRedirect,
   callbackRecoveryPath,
+  hasOrganizationRole,
   resolveInitialAuthentication,
-  type LatteRuntimeConfig,
   type LatteSession,
 } from '@erme2/latte'
-import type { LatteProduct, ProductContext } from './product/contract'
+import type { LatteProduct, LatteRuntime, ProductContext } from './product/contract'
+import { resolveProductRoute } from './product/runtime.mjs'
 import './App.css'
 
 type AuthState = 'checking' | 'authenticated' | 'redirecting' | 'error'
@@ -30,37 +27,22 @@ function retryAuthentication(defaultPath: string): void {
   window.location.reload()
 }
 
-function selectedRoute(product: LatteProduct) {
-  return (
-    product.routes.find((route) => route.path === window.location.pathname) ??
-    product.routes.find((route) => route.path === product.defaultPath)
-  )
+type Props<Services extends object> = {
+  runtime: LatteRuntime<Services>
+  product: LatteProduct<Services>
 }
 
-type Props = {
-  config: LatteRuntimeConfig
-  product: LatteProduct
-}
-
-export default function App({ config, product }: Props) {
+export default function App<Services extends object>({ runtime, product }: Props<Services>) {
   const [authState, setAuthState] = useState<AuthState>('checking')
   const [session, setSession] = useState<LatteSession | null>(null)
   const [message, setMessage] = useState('Checking your Pane session')
-  const platform = useMemo(() => {
-    const pane = createPaneClient(config)
-    return {
-      pane,
-      auth: createAuthService(pane, config, product.authenticationHosts),
-      rows: createRowService(pane, config),
-    }
-  }, [config, product.authenticationHosts])
 
   useEffect(() => {
     let active = true
 
     async function authenticate(): Promise<void> {
       try {
-        const initial = await resolveInitialAuthentication(window.location.search, platform.auth)
+        const initial = await resolveInitialAuthentication(window.location.search, runtime.auth)
 
         if (!active) return
 
@@ -83,7 +65,7 @@ export default function App({ config, product }: Props) {
           setAuthState('redirecting')
           setMessage('Redirecting to sign in')
           const result = await attemptLoginRedirect(() =>
-            platform.auth.beginLogin(redirectUrl(window.location.pathname)),
+            runtime.auth.beginLogin(redirectUrl(window.location.pathname)),
           )
 
           if (result.status === 'error' && active) {
@@ -102,7 +84,7 @@ export default function App({ config, product }: Props) {
     return () => {
       active = false
     }
-  }, [platform, product.defaultPath])
+  }, [runtime, product.defaultPath])
 
   if (authState !== 'authenticated' || !session) {
     return (
@@ -127,15 +109,25 @@ export default function App({ config, product }: Props) {
     )
   }
 
-  const context: ProductContext = {
-    config,
-    pane: platform.pane as AxiosInstance,
-    rows: platform.rows,
+  const resolution = resolveProductRoute(
+    product.routes,
+    window.location.pathname,
+    session.data.membership.attributes.role,
+  )
+  const params = resolution.status === 'not_found' ? {} : resolution.params
+  const context: ProductContext<Services> = {
+    config: runtime.config,
+    pane: runtime.pane,
+    rows: runtime.rows,
+    services: runtime.services,
     session,
+    params,
   }
-  const route = selectedRoute(product)
-  const permitted = route && (!route.roles || hasOrganizationRole(session, route.roles))
-  const Page = permitted ? route.component : product.forbiddenPage
+  const Page = resolution.status === 'matched'
+    ? resolution.route.component
+    : resolution.status === 'forbidden'
+      ? product.forbiddenPage
+      : product.notFoundPage
 
   return (
     <main className="dashboard">
