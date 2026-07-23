@@ -5,13 +5,10 @@ import type {
   LatteRuntimeConfig,
   VersionedItemResponse,
 } from './types.js'
+import { createOrganizationRouter } from './organization.js'
 
 export type PaneRowValue = string | number | boolean | null
 export type PaneRowValues = Record<string, PaneRowValue>
-
-function segment(value: string): string {
-  return encodeURIComponent(value)
-}
 
 function versioned<T>(response: AxiosResponse<ItemResponse<T>>): VersionedItemResponse<T> {
   const headers = response.headers as unknown as Record<string, unknown>
@@ -25,8 +22,9 @@ function versioned<T>(response: AxiosResponse<ItemResponse<T>>): VersionedItemRe
 }
 
 export function createRowService(pane: AxiosInstance, config: LatteRuntimeConfig) {
+  const organization = createOrganizationRouter(config)
   const collectionPath = (connectionId: string, tableId: string) =>
-    `/organizations/${segment(config.expectedOrganizationId)}/connections/${segment(connectionId)}/tables/${segment(tableId)}/rows`
+    organization.path('connections', connectionId, 'tables', tableId, 'rows')
 
   return {
     async list<T>(connectionId: string, tableId: string, params?: Record<string, unknown>) {
@@ -38,7 +36,7 @@ export function createRowService(pane: AxiosInstance, config: LatteRuntimeConfig
 
     async get<T>(connectionId: string, tableId: string, rowKey: string) {
       const response = await pane.get<ItemResponse<T>>(
-        `${collectionPath(connectionId, tableId)}/${segment(rowKey)}`,
+        organization.path('connections', connectionId, 'tables', tableId, 'rows', rowKey),
       )
       return versioned(response)
     },
@@ -58,7 +56,7 @@ export function createRowService(pane: AxiosInstance, config: LatteRuntimeConfig
       etag: string,
     ) {
       const response = await pane.patch<ItemResponse<T>>(
-        `${collectionPath(connectionId, tableId)}/${segment(rowKey)}`,
+        organization.path('connections', connectionId, 'tables', tableId, 'rows', rowKey),
         { values },
         { headers: { 'If-Match': etag } },
       )
@@ -66,7 +64,7 @@ export function createRowService(pane: AxiosInstance, config: LatteRuntimeConfig
     },
 
     async remove(connectionId: string, tableId: string, rowKey: string, etag: string) {
-      await pane.delete(`${collectionPath(connectionId, tableId)}/${segment(rowKey)}`, {
+      await pane.delete(organization.path('connections', connectionId, 'tables', tableId, 'rows', rowKey), {
         headers: { 'If-Match': etag },
       })
     },

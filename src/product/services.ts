@@ -2,9 +2,8 @@ import type { PlatformContext } from './contract'
 
 export type ProductServices = ReturnType<typeof createServices>
 
-export function createServices({ config, pane }: PlatformContext) {
-  const connectionsPath =
-    `/organizations/${encodeURIComponent(config.expectedOrganizationId)}/connections`
+export function createServices({ organization, pane }: PlatformContext) {
+  const connectionsPath = organization.path('connections')
 
   return {
     connections: {

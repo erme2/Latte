@@ -4,6 +4,7 @@ import {
   attemptLoginRedirect,
   callbackRecoveryPath,
   hasOrganizationRole,
+  paneAccessFailure,
   resolveInitialAuthentication,
   type LatteSession,
 } from '@erme2/latte'
@@ -75,6 +76,13 @@ export default function App<Services extends object>({ runtime, product }: Props
           return
         }
 
+        const accessFailure = paneAccessFailure(error)
+        if (accessFailure) {
+          setAuthState('error')
+          setMessage(accessFailure.message)
+          return
+        }
+
         setAuthState('error')
         setMessage(error instanceof Error ? error.message : 'Unable to start the application')
       }
@@ -118,6 +126,7 @@ export default function App<Services extends object>({ runtime, product }: Props
   const context: ProductContext<Services> = {
     config: runtime.config,
     pane: runtime.pane,
+    organization: runtime.organization,
     rows: runtime.rows,
     services: runtime.services,
     session,

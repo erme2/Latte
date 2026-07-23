@@ -2,6 +2,7 @@ import type { AxiosInstance } from 'axios'
 import {
   createAuthService,
   createPaneClient,
+  createOrganizationRouter,
   createRowService,
   type LatteRuntimeConfig,
   type LatteSession,
@@ -18,6 +19,7 @@ export type PlatformContext = {
   config: LatteRuntimeConfig
   pane: AxiosInstance
   rows: ReturnType<typeof createRowService>
+  organization: ReturnType<typeof createOrganizationRouter>
 }
 
 export type ProductContext<Services extends object> = PlatformContext & {
@@ -65,7 +67,12 @@ export function createLatteRuntime<Services extends object>(
   product: LatteProduct<Services>,
 ): LatteRuntime<Services> {
   const pane = createPaneClient(config)
-  const platform = { config, pane, rows: createRowService(pane, config) }
+  const platform = {
+    config,
+    pane,
+    organization: createOrganizationRouter(config),
+    rows: createRowService(pane, config),
+  }
 
   return {
     ...platform,
