@@ -5,13 +5,11 @@ import type {
   LatteRuntimeConfig,
   VersionedItemResponse,
 } from './types.js'
+import { rejectPaneAccessFailure } from './errors.js'
+import { createOrganizationRouter } from './organization.js'
 
 export type PaneRowValue = string | number | boolean | null
 export type PaneRowValues = Record<string, PaneRowValue>
-
-function segment(value: string): string {
-  return encodeURIComponent(value)
-}
 
 function versioned<T>(response: AxiosResponse<ItemResponse<T>>): VersionedItemResponse<T> {
   const headers = response.headers as unknown as Record<string, unknown>
@@ -25,28 +23,31 @@ function versioned<T>(response: AxiosResponse<ItemResponse<T>>): VersionedItemRe
 }
 
 export function createRowService(pane: AxiosInstance, config: LatteRuntimeConfig) {
+  const organization = createOrganizationRouter(config)
   const collectionPath = (connectionId: string, tableId: string) =>
-    `/organizations/${segment(config.expectedOrganizationId)}/connections/${segment(connectionId)}/tables/${segment(tableId)}/rows`
+    organization.path('connections', connectionId, 'tables', tableId, 'rows')
 
   return {
     async list<T>(connectionId: string, tableId: string, params?: Record<string, unknown>) {
-      const { data } = await pane.get<CollectionResponse<T>>(collectionPath(connectionId, tableId), {
-        params,
-      })
+      const { data } = await pane
+        .get<CollectionResponse<T>>(collectionPath(connectionId, tableId), { params })
+        .catch(rejectPaneAccessFailure)
       return data
     },
 
     async get<T>(connectionId: string, tableId: string, rowKey: string) {
-      const response = await pane.get<ItemResponse<T>>(
-        `${collectionPath(connectionId, tableId)}/${segment(rowKey)}`,
-      )
+      const response = await pane
+        .get<ItemResponse<T>>(
+          organization.path('connections', connectionId, 'tables', tableId, 'rows', rowKey),
+        )
+        .catch(rejectPaneAccessFailure)
       return versioned(response)
     },
 
     async create<T>(connectionId: string, tableId: string, values: PaneRowValues) {
-      const response = await pane.post<ItemResponse<T>>(collectionPath(connectionId, tableId), {
-        values,
-      })
+      const response = await pane
+        .post<ItemResponse<T>>(collectionPath(connectionId, tableId), { values })
+        .catch(rejectPaneAccessFailure)
       return versioned(response)
     },
 
@@ -57,18 +58,22 @@ export function createRowService(pane: AxiosInstance, config: LatteRuntimeConfig
       values: PaneRowValues,
       etag: string,
     ) {
-      const response = await pane.patch<ItemResponse<T>>(
-        `${collectionPath(connectionId, tableId)}/${segment(rowKey)}`,
-        { values },
-        { headers: { 'If-Match': etag } },
-      )
+      const response = await pane
+        .patch<ItemResponse<T>>(
+          organization.path('connections', connectionId, 'tables', tableId, 'rows', rowKey),
+          { values },
+          { headers: { 'If-Match': etag } },
+        )
+        .catch(rejectPaneAccessFailure)
       return versioned(response)
     },
 
     async remove(connectionId: string, tableId: string, rowKey: string, etag: string) {
-      await pane.delete(`${collectionPath(connectionId, tableId)}/${segment(rowKey)}`, {
-        headers: { 'If-Match': etag },
-      })
+      await pane
+        .delete(organization.path('connections', connectionId, 'tables', tableId, 'rows', rowKey), {
+          headers: { 'If-Match': etag },
+        })
+        .catch(rejectPaneAccessFailure)
     },
   }
 }

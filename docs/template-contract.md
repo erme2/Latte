@@ -20,7 +20,8 @@ a shared dependency.
 - login intents, callbacks, session loading, and logout;
 - verification that Pane's trusted session application and organization match
   the deployment's public expectations;
-- organization role helpers and generic Pane row CRUD services.
+- organization role helpers and generic Pane row CRUD services;
+- fixed-organization route generation and presentation-safe Pane access errors.
 
 Row create and update operations send Pane's exact `{ "values": ... }` write
 shape. Item reads and writes return both the response document and its strong
@@ -71,6 +72,20 @@ the browser's actual origin. Application and organization UUIDs are compared
 with Pane's `GET /api/v1/session` response. Runtime configuration never selects
 an application or organization: Pane resolves the application from trusted
 Origin/session state and fixes the organization server-side.
+
+Product services receive `platform.organization`. Every organization-scoped
+Pane request must use `platform.organization.path(...)`; it inserts the fixed
+deployment organization and accepts only the remaining resource segments.
+Route, query, form, and browser-storage values therefore cannot select or
+override an organization. Pane still treats the client value as an assertion
+and rejects modified, stale, mismatched, or revoked deployment context.
+
+The shared Pane client and row service normalize Pane's fixed-organization 403
+codes for application mismatch/revocation, organization mismatch/inactivity,
+and missing or inactive membership into `PaneAccessError`. Use
+`paneAccessFailure(error)` to render that state without exposing the
+server-provided message. Other failures remain the product's responsibility,
+including ordinary role permission denials.
 
 The same built assets can therefore be deployed in multiple environments by
 replacing only this public file. Vite's `VITE_PANE_PROXY_*` variables remain

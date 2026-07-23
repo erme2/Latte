@@ -16,6 +16,18 @@ export function assertLatteSession(
     throw new Error('Pane session organization does not match this deployment.')
   }
 
+  if (session.data.application.attributes.status !== 'active') {
+    throw new Error('Pane session application is not active.')
+  }
+
+  if (session.data.organization.attributes.status !== 'active') {
+    throw new Error('Pane session organization is not active.')
+  }
+
+  if (session.data.membership.attributes.status !== 'active') {
+    throw new Error('Pane session membership is not active.')
+  }
+
   return session
 }
 
