@@ -80,11 +80,12 @@ Route, query, form, and browser-storage values therefore cannot select or
 override an organization. Pane still treats the client value as an assertion
 and rejects modified, stale, mismatched, or revoked deployment context.
 
-`paneAccessFailure(error)` recognizes Pane's fixed-organization 403 codes for
-application mismatch/revocation, organization mismatch/inactivity, and missing
-or inactive membership. It returns a stable, presentation-safe state without
-exposing the server-provided message. Other failures remain the product's
-responsibility, including ordinary role permission denials.
+The shared Pane client and row service normalize Pane's fixed-organization 403
+codes for application mismatch/revocation, organization mismatch/inactivity,
+and missing or inactive membership into `PaneAccessError`. Use
+`paneAccessFailure(error)` to render that state without exposing the
+server-provided message. Other failures remain the product's responsibility,
+including ordinary role permission denials.
 
 The same built assets can therefore be deployed in multiple environments by
 replacing only this public file. Vite's `VITE_PANE_PROXY_*` variables remain

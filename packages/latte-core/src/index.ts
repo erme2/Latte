@@ -7,7 +7,13 @@ export {
 } from './auth.js'
 export type { InitialAuthenticationResult, LoginRedirectResult } from './auth.js'
 export { createPaneClient } from './client.js'
-export { paneAccessErrorCodes, paneAccessFailure } from './errors.js'
+export {
+  PaneAccessError,
+  paneAccessError,
+  paneAccessErrorCodes,
+  paneAccessFailure,
+  rejectPaneAccessFailure,
+} from './errors.js'
 export type { PaneAccessErrorCode, PaneAccessFailure } from './errors.js'
 export { assertBrowserOrigin, loadLatteRuntimeConfig, parseLatteRuntimeConfig } from './config.js'
 export { createRowService } from './crud.js'

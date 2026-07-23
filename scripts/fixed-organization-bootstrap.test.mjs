@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict'
 import axios from 'axios'
-import { assertLatteSession, createAuthService, createOrganizationRouter, paneAccessFailure } from '../packages/latte-core/dist/index.js'
+import {
+  PaneAccessError,
+  assertLatteSession,
+  createAuthService,
+  createOrganizationRouter,
+  createPaneClient,
+  createRowService,
+  paneAccessFailure,
+} from '../packages/latte-core/dist/index.js'
 
 const applicationId = '01900000-0000-7000-8000-000000000001'
 const organizationId = '01900000-0000-7000-8000-000000000002'
@@ -37,8 +45,8 @@ for (const [resource, expected] of [['application', /application is not active/]
   assert.throws(() => assertLatteSession(changed, config), expected)
 }
 
-function pane403(code, message = 'Sensitive server detail') {
-  return new axios.AxiosError('Request failed', undefined, {}, {}, { status: 403, statusText: 'Forbidden', headers: {}, config: {}, data: { error: { code, message, request_id: 'request-id' } } })
+function pane403(code, message = 'Sensitive server detail', request = {}) {
+  return new axios.AxiosError('Request failed', undefined, {}, request, { status: 403, statusText: 'Forbidden', headers: {}, config: request, data: { error: { code, message, request_id: 'request-id' } } })
 }
 assert.deepEqual(paneAccessFailure(pane403('application_not_allowed')), { code: 'application_not_allowed', kind: 'deployment_unavailable', message: 'This application is not available for its configured organization.', requestId: 'request-id' })
 assert.equal(paneAccessFailure(pane403('organization_context_mismatch')).kind, 'deployment_unavailable')
@@ -46,3 +54,45 @@ assert.equal(paneAccessFailure(pane403('organization_inactive')).kind, 'organiza
 assert.equal(paneAccessFailure(pane403('membership_required')).kind, 'access_denied')
 assert.equal(paneAccessFailure(pane403('permission_denied')), null)
 assert.doesNotMatch(paneAccessFailure(pane403('organization_inactive')).message, /Sensitive/)
+
+async function rejectsWithPaneAccess(promise, code) {
+  await assert.rejects(promise, (error) => {
+    const failure = paneAccessFailure(error)
+    assert.equal(error instanceof PaneAccessError, true)
+    assert.equal(failure?.code, code)
+    return true
+  })
+}
+
+for (const code of [
+  'application_not_allowed',
+  'organization_context_mismatch',
+  'organization_inactive',
+  'membership_required',
+]) {
+  const rejectedRows = createRowService(axios.create({
+    adapter: async (request) => {
+      throw pane403(code, 'Sensitive row detail', request)
+    },
+  }), config)
+  await rejectsWithPaneAccess(rejectedRows.list('connection', 'table'), code)
+}
+
+const deniedRows = createRowService(axios.create({
+  adapter: async (request) => {
+    throw pane403('permission_denied', 'Permission denied', request)
+  },
+}), config)
+await assert.rejects(deniedRows.list('connection', 'table'), axios.AxiosError)
+
+let connectionRequest
+const paneClient = createPaneClient(config)
+paneClient.defaults.adapter = async (request) => {
+  connectionRequest = request
+  throw pane403('organization_context_mismatch', 'Sensitive connection detail', request)
+}
+await rejectsWithPaneAccess(
+  paneClient.get(organization.path('connections')),
+  'organization_context_mismatch',
+)
+assert.equal(connectionRequest.url, `/organizations/${organizationId}/connections`)

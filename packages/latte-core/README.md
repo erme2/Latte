@@ -7,8 +7,9 @@ contains no application routes, navigation, pages, branding, or styling.
 
 Use `createOrganizationRouter(config)` for every organization-scoped Pane path;
 callers provide resource segments but cannot provide an organization ID. Use
-`paneAccessFailure(error)` to map Pane's application, organization, and
-membership context failures to stable messages safe for presentation.
+`paneAccessFailure(error)` to render Pane's application, organization, and
+membership context failures after the shared client normalizes them into
+`PaneAccessError`.
 
 The package is public code and accepts no secrets. Application and organization
 UUIDs in runtime configuration are assertions checked against Pane's trusted
