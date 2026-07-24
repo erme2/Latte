@@ -1,9 +1,12 @@
-import { AxiosError } from 'axios'
 import { useEffect, useState } from 'react'
 import {
   attemptLoginRedirect,
+  authenticationFailureMessage,
   callbackRecoveryPath,
+  hasAuthenticationCallback,
   hasOrganizationRole,
+  invitationTokenFromSearch,
+  isAuthenticationRequired,
   paneAccessFailure,
   resolveInitialAuthentication,
   type LatteSession,
@@ -43,6 +46,28 @@ export default function App<Services extends object>({ runtime, product }: Props
 
     async function authenticate(): Promise<void> {
       try {
+        const invitation = invitationTokenFromSearch(window.location.search)
+
+        if (invitation.status === 'invalid') {
+          setAuthState('error')
+          setMessage(invitation.message)
+          return
+        }
+
+        if (invitation.status === 'ready' && !hasAuthenticationCallback(window.location.search)) {
+          setAuthState('redirecting')
+          setMessage('Redirecting to accept invitation')
+          const result = await attemptLoginRedirect(() =>
+            runtime.auth.beginLogin(redirectUrl(window.location.pathname), invitation.token),
+          )
+
+          if (result.status === 'error' && active) {
+            setAuthState('error')
+            setMessage(result.message)
+          }
+          return
+        }
+
         const initial = await resolveInitialAuthentication(window.location.search, runtime.auth)
 
         if (!active) return
@@ -62,7 +87,7 @@ export default function App<Services extends object>({ runtime, product }: Props
       } catch (error) {
         if (!active) return
 
-        if (error instanceof AxiosError && error.response?.status === 401) {
+        if (isAuthenticationRequired(error)) {
           setAuthState('redirecting')
           setMessage('Redirecting to sign in')
           const result = await attemptLoginRedirect(() =>
@@ -84,7 +109,7 @@ export default function App<Services extends object>({ runtime, product }: Props
         }
 
         setAuthState('error')
-        setMessage(error instanceof Error ? error.message : 'Unable to start the application')
+        setMessage(authenticationFailureMessage(error))
       }
     }
 
@@ -93,6 +118,52 @@ export default function App<Services extends object>({ runtime, product }: Props
       active = false
     }
   }, [runtime, product.defaultPath])
+
+  useEffect(() => {
+    if (authState !== 'authenticated') return undefined
+
+    const interceptor = runtime.pane.interceptors.response.use(undefined, (error: unknown) => {
+      const accessFailure = paneAccessFailure(error)
+
+      if (accessFailure) {
+        setSession(null)
+        setAuthState('error')
+        setMessage(accessFailure.message)
+      } else if (isAuthenticationRequired(error)) {
+        setSession(null)
+        setAuthState('redirecting')
+        setMessage('Your session expired. Redirecting to sign in')
+        void attemptLoginRedirect(() => runtime.auth.beginLogin(redirectUrl(product.defaultPath)))
+          .then((result) => {
+            if (result.status === 'error') {
+              setAuthState('error')
+              setMessage(result.message)
+            }
+          })
+      }
+
+      return Promise.reject(error)
+    })
+
+    return () => {
+      runtime.pane.interceptors.response.eject(interceptor)
+    }
+  }, [authState, runtime, product.defaultPath])
+
+  async function logout(): Promise<void> {
+    setAuthState('redirecting')
+    setMessage('Signing out')
+
+    try {
+      await runtime.auth.logout()
+      setSession(null)
+      setAuthState('error')
+      setMessage('You have been signed out.')
+    } catch (error) {
+      setAuthState('error')
+      setMessage(authenticationFailureMessage(error))
+    }
+  }
 
   if (authState !== 'authenticated' || !session) {
     return (
@@ -151,6 +222,9 @@ export default function App<Services extends object>({ runtime, product }: Props
             .map((item) => (
               <a href={item.path} key={item.id}>{item.label}</a>
             ))}
+          <button className="nav-button" type="button" onClick={() => { void logout() }}>
+            Sign out
+          </button>
         </nav>
       </header>
       {Page ? <Page context={context} /> : <h2>Page not found</h2>}
