@@ -1,8 +1,10 @@
 import assert from 'node:assert/strict'
 import axios from 'axios'
 import {
+  authenticationFailureMessage,
   callbackRecoveryPath,
   createAuthService,
+  invitationAcceptanceErrorCodes,
   resolveInitialAuthentication,
 } from '../packages/latte-core/dist/index.js'
 
@@ -150,3 +152,50 @@ const failedCallback = await resolveInitialAuthentication(
   },
 )
 assert.deepEqual(failedCallback, { status: 'error', message: 'Unable to complete sign in.' })
+
+function paneError(status, code, message = 'Sensitive server detail') {
+  return new axios.AxiosError('Request failed', undefined, {}, {}, {
+    status,
+    statusText: status === 422 ? 'Unprocessable Content' : 'Error',
+    headers: {},
+    config: {},
+    data: { error: { code, message, request_id: 'request-id' } },
+  })
+}
+
+const expectedInvitationMessages = new Map([
+  ['invitation_invalid', 'This invitation link is invalid. Ask an organization administrator to resend it.'],
+  ['invitation_expired', 'This invitation has expired. Ask an organization administrator to resend it.'],
+  ['invitation_revoked', 'This invitation has been revoked or replaced. Ask an organization administrator to resend it.'],
+  ['invitation_already_accepted', 'This invitation has already been accepted. Sign in with the account that accepted it.'],
+  ['invitation_email_mismatch', 'This invitation is for a different email address. Sign in with the invited account or ask for a new invitation.'],
+  ['invitation_organization_mismatch', 'This invitation cannot be used with this application. Ask for a new invitation from this application.'],
+])
+
+assert.deepEqual(invitationAcceptanceErrorCodes, [...expectedInvitationMessages.keys()])
+
+for (const [code, expectedMessage] of expectedInvitationMessages) {
+  const error = paneError(422, code)
+
+  assert.equal(authenticationFailureMessage(error), expectedMessage)
+  assert.doesNotMatch(authenticationFailureMessage(error), /Sensitive/)
+
+  const result = await resolveInitialAuthentication(
+    '?code=invite-code&state=valid-state',
+    {
+      async session() {
+        throw new Error('session must not be read')
+      },
+      async completeLogin() {
+        throw error
+      },
+    },
+  )
+
+  assert.deepEqual(result, { status: 'error', message: expectedMessage })
+}
+
+assert.equal(
+  authenticationFailureMessage(paneError(422, 'validation_failed')),
+  'Unable to complete sign in. Check the link and try again.',
+)

@@ -1,16 +1,29 @@
 export {
   attemptLoginRedirect,
+  authenticationFailureMessage,
   callbackRecoveryPath,
   createAuthService,
+  hasAuthenticationCallback,
+  invitationAcceptanceErrorCodes,
+  invitationAcceptanceFailureMessage,
+  invitationTokenFromSearch,
+  isAuthenticationRequired,
   resolveInitialAuthentication,
   validateAuthRedirectUrl,
 } from './auth.js'
-export type { InitialAuthenticationResult, LoginRedirectResult } from './auth.js'
+export type {
+  InitialAuthenticationResult,
+  InvitationAcceptanceErrorCode,
+  InvitationTokenResult,
+  LoginRedirectResult,
+} from './auth.js'
 export { createPaneClient } from './client.js'
 export {
   PaneAccessError,
   paneAccessError,
   paneAccessErrorCodes,
+  paneErrorCode,
+  paneErrorStatus,
   paneAccessFailure,
   rejectPaneAccessFailure,
 } from './errors.js'

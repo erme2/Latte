@@ -16,6 +16,10 @@ export type PaneAccessFailure = {
   requestId?: string
 }
 
+type PaneErrorBody = {
+  error?: { code?: unknown; request_id?: unknown }
+}
+
 export class PaneAccessError extends Error {
   readonly failure: PaneAccessFailure
 
@@ -24,6 +28,17 @@ export class PaneAccessError extends Error {
     this.name = 'PaneAccessError'
     this.failure = failure
   }
+}
+
+export function paneErrorCode(error: unknown): string | null {
+  if (!axios.isAxiosError(error)) return null
+
+  const body = error.response?.data as PaneErrorBody | undefined
+  return typeof body?.error?.code === 'string' ? body.error.code : null
+}
+
+export function paneErrorStatus(error: unknown): number | null {
+  return axios.isAxiosError(error) ? error.response?.status ?? null : null
 }
 
 function accessFailure(code: PaneAccessErrorCode, requestId?: string): PaneAccessFailure {
@@ -61,15 +76,13 @@ export function paneAccessFailure(error: unknown): PaneAccessFailure | null {
 
   if (!axios.isAxiosError(error) || error.response?.status !== 403) return null
 
-  const body = error.response.data as {
-    error?: { code?: unknown; request_id?: unknown }
-  } | undefined
-  const code = body?.error?.code
+  const code = paneErrorCode(error)
 
   if (typeof code !== 'string' || !paneAccessErrorCodes.includes(code as PaneAccessErrorCode)) {
     return null
   }
 
+  const body = error.response.data as PaneErrorBody | undefined
   const requestId = typeof body?.error?.request_id === 'string'
     ? body.error.request_id
     : undefined

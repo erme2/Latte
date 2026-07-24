@@ -1,4 +1,5 @@
 import type { AxiosInstance } from 'axios'
+import { paneErrorCode, paneErrorStatus } from './errors.js'
 import { assertLatteSession } from './session.js'
 import type { LatteRuntimeConfig, LatteSession } from './types.js'
 
@@ -14,9 +15,97 @@ export type InitialAuthenticationResult =
   | { status: 'authenticated'; session: LatteSession; fromCallback: boolean }
   | { status: 'error'; message: string }
 
+export type InvitationTokenResult =
+  | { status: 'none' }
+  | { status: 'ready'; token: string }
+  | { status: 'invalid'; message: string }
+
+export const invitationAcceptanceErrorCodes = [
+  'invitation_invalid',
+  'invitation_expired',
+  'invitation_revoked',
+  'invitation_already_accepted',
+  'invitation_email_mismatch',
+  'invitation_organization_mismatch',
+] as const
+
+export type InvitationAcceptanceErrorCode = (typeof invitationAcceptanceErrorCodes)[number]
+
 type InitialAuthService = {
   session(): Promise<LatteSession>
   completeLogin(code: string, state: string): Promise<LatteSession>
+}
+
+export function invitationTokenFromSearch(search: string): InvitationTokenResult {
+  const token = new URLSearchParams(search).get('invitation_token')
+
+  if (token === null) {
+    return { status: 'none' }
+  }
+
+  if (token.length < 32 || token.length > 512) {
+    return {
+      status: 'invalid',
+      message: 'This invitation link is invalid. Ask an organization administrator to resend it.',
+    }
+  }
+
+  return { status: 'ready', token }
+}
+
+export function hasAuthenticationCallback(search: string): boolean {
+  const params = new URLSearchParams(search)
+  return params.has('code') || params.has('state') || params.has('error') || params.has('error_description')
+}
+
+export function isAuthenticationRequired(error: unknown): boolean {
+  const status = paneErrorStatus(error)
+  const code = paneErrorCode(error)
+
+  return status === 401 && (!code || code === 'authentication_required' || code === 'session_expired')
+}
+
+export function authenticationFailureMessage(error: unknown): string {
+  const code = paneErrorCode(error)
+
+  if (code && invitationAcceptanceErrorCodes.includes(code as InvitationAcceptanceErrorCode)) {
+    return invitationAcceptanceFailureMessage(code as InvitationAcceptanceErrorCode)
+  }
+
+  if (code === 'validation_failed') {
+    return 'Unable to complete sign in. Check the link and try again.'
+  }
+
+  if (code === 'redirect_not_allowed') {
+    return 'This application is not registered for the current return URL.'
+  }
+
+  if (code === 'rate_limited') {
+    return 'Too many sign-in attempts. Wait a moment, then try again.'
+  }
+
+  if (code === 'csrf_failed') {
+    return 'Pane could not verify this session request. Try again.'
+  }
+
+  return 'Unable to complete sign in.'
+}
+
+export function invitationAcceptanceFailureMessage(code: InvitationAcceptanceErrorCode): string {
+  switch (code) {
+    case 'invitation_expired':
+      return 'This invitation has expired. Ask an organization administrator to resend it.'
+    case 'invitation_revoked':
+      return 'This invitation has been revoked or replaced. Ask an organization administrator to resend it.'
+    case 'invitation_already_accepted':
+      return 'This invitation has already been accepted. Sign in with the account that accepted it.'
+    case 'invitation_email_mismatch':
+      return 'This invitation is for a different email address. Sign in with the invited account or ask for a new invitation.'
+    case 'invitation_organization_mismatch':
+      return 'This invitation cannot be used with this application. Ask for a new invitation from this application.'
+    case 'invitation_invalid':
+      return 'This invitation link is invalid. Ask an organization administrator to resend it.'
+  }
 }
 
 export async function attemptLoginRedirect(beginLogin: () => Promise<void>): Promise<LoginRedirectResult> {
@@ -32,8 +121,7 @@ export async function attemptLoginRedirect(beginLogin: () => Promise<void>): Pro
 }
 
 export function callbackRecoveryPath(search: string, defaultPath: string): string | null {
-  const params = new URLSearchParams(search)
-  return params.has('code') || params.has('state') || params.has('error') ? defaultPath : null
+  return hasAuthenticationCallback(search) ? defaultPath : null
 }
 
 export async function resolveInitialAuthentication(
@@ -70,8 +158,8 @@ export async function resolveInitialAuthentication(
         session: await auth.completeLogin(code, state),
         fromCallback: true,
       }
-    } catch {
-      return { status: 'error', message: 'Unable to complete sign in.' }
+    } catch (error) {
+      return { status: 'error', message: authenticationFailureMessage(error) }
     }
   }
 

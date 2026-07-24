@@ -52,6 +52,27 @@
   border-bottom: 1px solid var(--border);
 }
 
+.topbar nav {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.topbar a,
+.nav-button {
+  color: var(--accent-strong);
+  font: inherit;
+  font-weight: 700;
+}
+
+.nav-button {
+  border: 0;
+  padding: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
 .eyebrow {
   margin: 0 0 6px;
   color: var(--muted);

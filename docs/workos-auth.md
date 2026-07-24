@@ -27,6 +27,16 @@ effect replay cannot consume a one-time code twice. A failed callback retry
 removes callback parameters before reloading; Latte then uses an existing Pane
 session or starts a fresh login instead of resubmitting the consumed code.
 
+Invitation links are consumed only by Pane. Latte reads `invitation_token` from
+the initial URL, forwards it to `POST /api/v1/auth/login-intents`, and never
+persists it in runtime configuration, storage, or the post-login redirect URL.
+If Pane rejects the callback with one of its public invitation codes, Latte
+renders only a local message selected from `error.code`:
+`invitation_invalid`, `invitation_expired`, `invitation_revoked`,
+`invitation_already_accepted`, `invitation_email_mismatch`, or
+`invitation_organization_mismatch`. Latte does not render server details, target
+emails, organization identifiers, or token metadata.
+
 The Pane Axios client sends cookies and mirrors the encrypted `XSRF-TOKEN`
 cookie in `X-XSRF-TOKEN` for mutations. Authentication URLs must use HTTPS and
 match the exact or wildcard hosts declared by the product manifest. Secrets,
