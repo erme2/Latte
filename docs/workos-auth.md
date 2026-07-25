@@ -42,3 +42,20 @@ cookie in `X-XSRF-TOKEN` for mutations. Authentication URLs must use HTTPS and
 match the exact or wildcard hosts declared by the product manifest. Secrets,
 OAuth state, application selection, and organization selection are never kept
 in browser configuration or product code.
+
+## Local Docker HTTPS callback
+
+Latte owns the browser-facing local development vhost for Latte-derived
+applications. In Docker mode, run the Latte Nginx service at
+`https://latte.localhost`; it terminates TLS for the browser, serves the Vite
+app, and proxies `/pane/*` to Pane's backend container on the shared Docker
+network. Pane should not own a `latte.localhost` Nginx vhost.
+
+Pane's local WorkOS values should point to Latte because the browser returns to
+the frontend callback route first:
+
+```dotenv
+FRONTEND_URL=https://latte.localhost
+WORKOS_REDIRECT_URI=https://latte.localhost/auth/callback
+WORKOS_RETURN_TO=https://latte.localhost
+```

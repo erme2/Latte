@@ -35,12 +35,12 @@ cp .env.example .env
 
 The default local values point the Vite proxy at Pane on `http://localhost:8000`.
 
-Latte only allows the Vite `/pane` proxy to target expected local Pane endpoints. Invalid proxy targets fail during Vite startup instead of silently routing authenticated Pane traffic elsewhere.
+Latte only allows the Vite `/pane` proxy to target expected local Pane endpoints. Invalid proxy targets fail during Vite startup instead of silently routing authenticated Pane traffic elsewhere. These `VITE_PANE_PROXY_*` values are only used when running Vite directly with `npm run dev`; Docker routes `/pane` through Latte's Nginx service instead.
 
 | Environment | `VITE_PANE_PROXY_TARGET` | `VITE_PANE_PROXY_HOST` | `VITE_PANE_PROXY_VERIFY_TLS` |
 | --- | --- | --- | --- |
-| Local host | `http://localhost:8000` | empty | `true` |
-| Docker | `https://nginx` | `pane.localhost` | `false` |
+| Host Vite dev server | `http://localhost:8000` | empty | `true` |
+| Host Vite against Pane HTTPS | `https://pane.localhost` | `pane.localhost` | `false` only for self-signed local certs |
 
 `VITE_PANE_PROXY_TARGET` must be an `http` or `https` origin for an expected local Pane host. `VITE_PANE_PROXY_HOST` is optional, but when set it must be an expected Pane Host header such as `pane.localhost`. `VITE_PANE_PROXY_VERIFY_TLS` defaults to `true`; set it to `false` only for local development targets that use a self-signed certificate or a container DNS name that cannot pass normal certificate verification.
 
@@ -54,9 +54,21 @@ Pane should also allow the Latte-derived application as its frontend origin:
 FRONTEND_URL=http://localhost:5173
 ```
 
+For Docker HTTPS development, Pane should instead trust Latte's local HTTPS
+origin and callback:
+
+```dotenv
+FRONTEND_URL=https://latte.localhost
+WORKOS_REDIRECT_URI=https://latte.localhost/auth/callback
+WORKOS_RETURN_TO=https://latte.localhost
+```
+
 Copy `public/latte-config.json` for each deployment and replace its example
-application UUID, organization UUID, and origin with the public values from the
-Pane registration. The file contains assertions only and must never contain
+application UUID and organization UUID with the public values from the Pane
+registration. The committed local Docker example uses
+`expectedOrigin=https://latte.localhost`; if you run Vite directly at
+`http://localhost:5173`, change `expectedOrigin` to that exact origin before
+starting the app. The file contains assertions only and must never contain
 secrets.
 
 ## Run Locally
@@ -85,19 +97,50 @@ Create the Docker env file:
 cp .env.docker.example .env.docker
 ```
 
-Then start the container:
+Install `mkcert`, then generate Latte's local certificate:
 
 ```bash
-docker compose -f docker-compose.dev.yml up
+./bash/generate-certs.sh
 ```
 
-Docker uses `.env.docker` so its Pane proxy can target the `pane_laravel` network while local development keeps using `.env`. Both files are ignored by Git; only the example templates should be committed.
+Add `latte.localhost` to your local hosts file if your system does not already
+resolve `*.localhost` to loopback:
 
-The explicitly named `Dockerfile.dev` and `docker-compose.dev.yml` files are only for local development. Latte intentionally has no default `Dockerfile` or `docker-compose.yml`, so generic Docker commands cannot accidentally treat the Vite development server as a production runtime.
+```text
+127.0.0.1 latte.localhost
+```
+
+Start Pane first so its `app` PHP-FPM service is attached to the
+shared `pane_laravel` Docker network. Then start Latte:
+
+```bash
+docker compose up
+```
+
+Open `https://latte.localhost`. Latte's local Nginx service terminates TLS,
+serves the Vite app, and proxies `/pane/*` to Pane's `app:9000`
+backend on the shared Docker network. Pane remains backend-only and does not
+own a Latte frontend vhost.
+
+Docker uses `.env.docker` for Latte's Vite service while local host development
+keeps using `.env`. Both files are ignored by Git; only the example templates
+should be committed.
+
+The explicitly named `Dockerfile.dev`, `docker-compose.dev.yml`, and default
+`docker-compose.yml` are only for local development. The default Compose file
+exists only so `docker compose up` starts the local HTTPS proxy. Do not treat
+the Vite development server as a production runtime.
 
 The development container runs as the image-provided `node` user. The source tree is bind-mounted at `/app`, and the writable dependency directory is the container-managed `/app/node_modules` volume.
 
-The development container runs Vite and publishes it only on `127.0.0.1:5173`. Do not deploy this Compose service or use it as a production runtime. A production deployment must run `npm run build` and serve the generated `dist/` assets with a production web server.
+The development container runs Vite behind Latte's Nginx service and does not
+publish the Vite port to the host. On startup it verifies the container-managed
+`/app/node_modules` volume contains the local `@erme2/latte` workspace link and
+builds that workspace before starting Vite, so the starter can import the
+package through the same public package boundary used by derived apps. Do not
+deploy this Compose service or use it as a production runtime. A production
+deployment must run `npm run build` and serve the generated `dist/` assets with
+a production web server.
 
 ## Repository transition
 

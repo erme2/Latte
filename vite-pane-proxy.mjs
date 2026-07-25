@@ -5,7 +5,6 @@ const ALLOWED_PANE_PROXY_TARGET_HOSTS = new Set([
   '127.0.0.1',
   '::1',
   'pane.localhost',
-  'nginx',
 ]);
 
 const ALLOWED_PANE_PROXY_HOST_HEADERS = new Set([

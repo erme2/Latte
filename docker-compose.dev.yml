@@ -6,13 +6,28 @@ services:
     container_name: latte
     restart: unless-stopped
     user: "node"
-    ports:
-      - "127.0.0.1:5173:5173"
+    expose:
+      - "5173"
     env_file:
       - .env.docker
     volumes:
       - .:/app
       - /app/node_modules
+    networks:
+      - pane
+
+  latte-nginx:
+    image: nginx:1.25-alpine
+    container_name: latte-nginx
+    restart: unless-stopped
+    depends_on:
+      - latte
+    ports:
+      - "127.0.0.1:80:80"
+      - "127.0.0.1:443:443"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
     networks:
       - pane
 
