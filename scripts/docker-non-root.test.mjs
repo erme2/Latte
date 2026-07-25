@@ -9,6 +9,7 @@ assert.match(dockerfile, /FROM node:24-alpine/);
 assert.match(dockerfile, /RUN chown node:node \/app/);
 assert.match(dockerfile, /USER node/);
 assert.match(dockerfile, /COPY --chown=node:node package\.json package-lock\.json \.\//);
+assert.match(dockerfile, /COPY --chown=node:node packages\/latte-core\/package\.json \.\/packages\/latte-core\/package\.json/);
 assert.match(dockerfile, /COPY --chown=node:node \. \./);
 assert.doesNotMatch(dockerfile, /USER root/);
 

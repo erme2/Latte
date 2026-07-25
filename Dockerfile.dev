@@ -6,10 +6,11 @@ RUN chown node:node /app
 USER node
 
 COPY --chown=node:node package.json package-lock.json ./
+COPY --chown=node:node packages/latte-core/package.json ./packages/latte-core/package.json
 RUN npm ci
 
 COPY --chown=node:node . .
 
 EXPOSE 5173
 
-CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
+CMD ["./bash/docker-dev-entrypoint.sh"]

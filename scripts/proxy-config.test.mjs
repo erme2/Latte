@@ -13,11 +13,11 @@ const dockerEnvExample = readFileSync('.env.docker.example', 'utf8');
 
 assert.equal(validatePaneProxyTarget(undefined), 'http://localhost:8000');
 assert.equal(validatePaneProxyTarget('http://localhost:8000'), 'http://localhost:8000');
-assert.equal(validatePaneProxyTarget('https://nginx'), 'https://nginx');
 assert.equal(validatePaneProxyTarget('https://pane.localhost'), 'https://pane.localhost');
 
 for (const target of [
   'ftp://localhost',
+  'https://nginx',
   'https://evil.example',
   'https://localhost/pane',
   'https://localhost?target=evil',
@@ -58,22 +58,24 @@ assert.equal(localProxy.secure, true);
 assert.equal(localProxy.headers, undefined);
 assert.equal(localProxy.rewrite('/pane/auth/user'), '/auth/user');
 
-const dockerProxy = createPaneProxyOptions({
-  VITE_PANE_PROXY_TARGET: 'https://nginx',
+const paneHttpsProxy = createPaneProxyOptions({
+  VITE_PANE_PROXY_TARGET: 'https://pane.localhost',
   VITE_PANE_PROXY_HOST: 'pane.localhost',
   VITE_PANE_PROXY_VERIFY_TLS: 'false',
 });
-assert.equal(dockerProxy.target, 'https://nginx');
-assert.equal(dockerProxy.secure, false);
-assert.deepEqual(dockerProxy.headers, { Host: 'pane.localhost' });
+assert.equal(paneHttpsProxy.target, 'https://pane.localhost');
+assert.equal(paneHttpsProxy.secure, false);
+assert.deepEqual(paneHttpsProxy.headers, { Host: 'pane.localhost' });
 
 assert.equal(envExample.includes('VITE_PANE_PROXY_TARGET=http://localhost:8000'), true);
 assert.equal(envExample.includes('VITE_PANE_PROXY_HOST='), true);
 assert.equal(envExample.includes('VITE_PANE_PROXY_VERIFY_TLS=true'), true);
-assert.equal(dockerEnvExample.includes('VITE_PANE_PROXY_TARGET=https://nginx'), true);
-assert.equal(dockerEnvExample.includes('VITE_PANE_PROXY_HOST=pane.localhost'), true);
-assert.equal(dockerEnvExample.includes('VITE_PANE_PROXY_VERIFY_TLS=false'), true);
+assert.equal(dockerEnvExample.includes('VITE_PANE_BASE_URL=/pane'), true);
+assert.equal(dockerEnvExample.includes('VITE_PANE_PROXY_TARGET='), false);
+assert.equal(dockerEnvExample.includes('VITE_PANE_PROXY_HOST='), false);
+assert.equal(dockerEnvExample.includes('VITE_PANE_PROXY_VERIFY_TLS='), false);
 assert.match(readme, /VITE_PANE_PROXY_TARGET/);
 assert.match(readme, /VITE_PANE_PROXY_HOST/);
 assert.match(readme, /VITE_PANE_PROXY_VERIFY_TLS/);
 assert.match(readme, /Invalid proxy targets fail during Vite startup/);
+assert.match(readme, /Docker routes `\/pane` through Latte's Nginx service/);

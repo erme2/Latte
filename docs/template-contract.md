@@ -89,7 +89,9 @@ including ordinary role permission denials.
 
 The same built assets can therefore be deployed in multiple environments by
 replacing only this public file. Vite's `VITE_PANE_PROXY_*` variables remain
-development-server configuration and are not application runtime state.
+host development-server configuration and are not application runtime state.
+Docker local development routes `/pane` through Latte's Nginx service instead
+of through Vite's proxy.
 
 ## Creating a derived application
 

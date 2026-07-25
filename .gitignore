@@ -15,6 +15,7 @@ dist-ssr
 !.env.example
 !.env.docker.example
 *.local
+nginx/certs/
 
 # Editor directories and files
 .vscode/*

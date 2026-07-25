@@ -1,0 +1,61 @@
+import assert from 'node:assert/strict';
+import { existsSync, readFileSync, statSync } from 'node:fs';
+
+const compose = readFileSync('docker-compose.dev.yml', 'utf8');
+const defaultCompose = readFileSync('docker-compose.yml', 'utf8');
+const nginx = readFileSync('nginx/default.conf', 'utf8');
+const certScript = readFileSync('bash/generate-certs.sh', 'utf8');
+const dockerEntrypoint = readFileSync('bash/docker-dev-entrypoint.sh', 'utf8');
+const dockerignore = readFileSync('.dockerignore', 'utf8');
+const gitignore = readFileSync('.gitignore', 'utf8');
+const readme = readFileSync('README.md', 'utf8');
+const workos = readFileSync('docs/workos-auth.md', 'utf8');
+const runtimeConfig = JSON.parse(readFileSync('public/latte-config.json', 'utf8'));
+
+assert.match(compose, /^  latte-nginx:/m);
+assert.match(compose, /depends_on:\n\s+- latte/);
+assert.match(compose, /"127\.0\.0\.1:80:80"/);
+assert.match(compose, /"127\.0\.0\.1:443:443"/);
+assert.match(compose, /- \.\/nginx\/certs:\/etc\/nginx\/certs:ro/);
+assert.match(compose, /name: pane_laravel/);
+assert.match(defaultCompose, /^  latte-nginx:/m);
+
+assert.match(nginx, /server_name latte\.localhost;/);
+assert.match(nginx, /resolver 127\.0\.0\.11 valid=10s ipv6=off;/);
+assert.match(nginx, /set \$pane_fastcgi_upstream app:9000;/);
+assert.match(nginx, /ssl_certificate \/etc\/nginx\/certs\/localhost\.pem;/);
+assert.match(nginx, /ssl_certificate_key \/etc\/nginx\/certs\/localhost-key\.pem;/);
+assert.match(nginx, /location = \/pane/);
+assert.match(nginx, /location \^~ \/pane\//);
+assert.match(nginx, /rewrite \^\/pane\(\/\.\*\)\$ \$1 break;/);
+assert.match(nginx, /fastcgi_param SCRIPT_FILENAME \/var\/www\/public\/index\.php;/);
+assert.match(nginx, /fastcgi_param REQUEST_URI \$uri\$is_args\$args;/);
+assert.match(nginx, /fastcgi_param HTTP_ORIGIN \$scheme:\/\/\$host;/);
+assert.match(nginx, /fastcgi_param HTTP_X_FORWARDED_PROTO https;/);
+assert.match(nginx, /fastcgi_pass \$pane_fastcgi_upstream;/);
+assert.match(nginx, /proxy_pass http:\/\/latte:5173;/);
+assert.match(nginx, /proxy_set_header Upgrade \$http_upgrade;/);
+assert.doesNotMatch(nginx, /burro\.localhost/);
+assert.doesNotMatch(nginx, /pane\.localhost/);
+
+assert.equal(existsSync('bash/generate-certs.sh'), true);
+assert.equal((statSync('bash/generate-certs.sh').mode & 0o111) !== 0, true);
+assert.match(certScript, /mkcert -install/);
+assert.match(certScript, /latte\.localhost localhost 127\.0\.0\.1 ::1/);
+assert.equal(existsSync('bash/docker-dev-entrypoint.sh'), true);
+assert.equal((statSync('bash/docker-dev-entrypoint.sh').mode & 0o111) !== 0, true);
+assert.match(dockerEntrypoint, /node_modules\/@erme2\/latte\/package\.json/);
+assert.match(dockerEntrypoint, /npm install/);
+assert.match(dockerEntrypoint, /npm run build --workspace @erme2\/latte/);
+assert.match(dockerEntrypoint, /exec npm run dev -- --host 0\.0\.0\.0/);
+assert.match(gitignore, /nginx\/certs\//);
+assert.match(dockerignore, /nginx\/certs/);
+
+assert.match(readme, /FRONTEND_URL=https:\/\/latte\.localhost/);
+assert.match(readme, /WORKOS_REDIRECT_URI=https:\/\/latte\.localhost\/auth\/callback/);
+assert.match(readme, /app` PHP-FPM service/);
+assert.match(readme, /app:9000/);
+assert.match(readme, /Pane remains backend-only/);
+assert.match(workos, /WORKOS_REDIRECT_URI=https:\/\/latte\.localhost\/auth\/callback/);
+assert.match(workos, /Pane should not own a `latte\.localhost` Nginx vhost/);
+assert.equal(runtimeConfig.expectedOrigin, 'https://latte.localhost');

@@ -1,0 +1,18 @@
+# Local development entrypoint. This intentionally delegates to
+# docker-compose.dev.yml so plain `docker compose up` starts the HTTPS frontend
+# proxy without making the Vite development server a production runtime.
+
+services:
+  latte:
+    extends:
+      file: docker-compose.dev.yml
+      service: latte
+  latte-nginx:
+    extends:
+      file: docker-compose.dev.yml
+      service: latte-nginx
+
+networks:
+  pane:
+    external: true
+    name: pane_laravel
