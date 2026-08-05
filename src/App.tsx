@@ -58,7 +58,7 @@ export default function App<Services extends object>({ runtime, product }: Props
           setAuthState('redirecting')
           setMessage('Redirecting to accept invitation')
           const result = await attemptLoginRedirect(() =>
-            runtime.auth.beginLogin(redirectUrl(window.location.pathname), invitation.token),
+            runtime.auth.beginLogin(redirectUrl(product.defaultPath), invitation.token),
           )
 
           if (result.status === 'error' && active) {
@@ -91,7 +91,7 @@ export default function App<Services extends object>({ runtime, product }: Props
           setAuthState('redirecting')
           setMessage('Redirecting to sign in')
           const result = await attemptLoginRedirect(() =>
-            runtime.auth.beginLogin(redirectUrl(window.location.pathname)),
+            runtime.auth.beginLogin(redirectUrl(product.defaultPath)),
           )
 
           if (result.status === 'error' && active) {
@@ -155,10 +155,8 @@ export default function App<Services extends object>({ runtime, product }: Props
     setMessage('Signing out')
 
     try {
-      await runtime.auth.logout()
-      setSession(null)
-      setAuthState('error')
-      setMessage('You have been signed out.')
+      const logoutUrl = await runtime.auth.logout()
+      window.location.assign(logoutUrl)
     } catch (error) {
       setAuthState('error')
       setMessage(authenticationFailureMessage(error))

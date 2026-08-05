@@ -7,6 +7,10 @@ type LoginIntentResponse = {
   data: { authorization_url: string; state: string }
 }
 
+type LogoutIntentResponse = {
+  data: { logout_url: string }
+}
+
 export type LoginRedirectResult =
   | { status: 'redirecting' }
   | { status: 'error'; message: string }
@@ -26,6 +30,7 @@ export const invitationAcceptanceErrorCodes = [
   'invitation_revoked',
   'invitation_already_accepted',
   'invitation_email_mismatch',
+  'invitation_email_unverified',
   'invitation_organization_mismatch',
 ] as const
 
@@ -101,6 +106,8 @@ export function invitationAcceptanceFailureMessage(code: InvitationAcceptanceErr
       return 'This invitation has already been accepted. Sign in with the account that accepted it.'
     case 'invitation_email_mismatch':
       return 'This invitation is for a different email address. Sign in with the invited account or ask for a new invitation.'
+    case 'invitation_email_unverified':
+      return 'This invitation requires a verified email address. Verify your email with the identity provider and try again.'
     case 'invitation_organization_mismatch':
       return 'This invitation cannot be used with this application. Ask for a new invitation from this application.'
     case 'invitation_invalid':
@@ -250,8 +257,10 @@ export function createAuthService(
       return tracked
     },
 
-    async logout(): Promise<void> {
-      await pane.delete('/session')
+    async logout(): Promise<string> {
+      const { data } = await pane.delete<LogoutIntentResponse>('/session')
+
+      return validateAuthRedirectUrl(data.data.logout_url, allowedAuthHosts)
     },
   }
 }
