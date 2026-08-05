@@ -30,6 +30,7 @@ export const invitationAcceptanceErrorCodes = [
   'invitation_revoked',
   'invitation_already_accepted',
   'invitation_email_mismatch',
+  'invitation_email_unverified',
   'invitation_organization_mismatch',
 ] as const
 
@@ -105,6 +106,8 @@ export function invitationAcceptanceFailureMessage(code: InvitationAcceptanceErr
       return 'This invitation has already been accepted. Sign in with the account that accepted it.'
     case 'invitation_email_mismatch':
       return 'This invitation is for a different email address. Sign in with the invited account or ask for a new invitation.'
+    case 'invitation_email_unverified':
+      return 'This invitation requires a verified email address. Verify your email with the identity provider and try again.'
     case 'invitation_organization_mismatch':
       return 'This invitation cannot be used with this application. Ask for a new invitation from this application.'
     case 'invitation_invalid':

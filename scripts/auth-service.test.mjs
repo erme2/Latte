@@ -229,6 +229,7 @@ const expectedInvitationMessages = new Map([
   ['invitation_revoked', 'This invitation has been revoked or replaced. Ask an organization administrator to resend it.'],
   ['invitation_already_accepted', 'This invitation has already been accepted. Sign in with the account that accepted it.'],
   ['invitation_email_mismatch', 'This invitation is for a different email address. Sign in with the invited account or ask for a new invitation.'],
+  ['invitation_email_unverified', 'This invitation requires a verified email address. Verify your email with the identity provider and try again.'],
   ['invitation_organization_mismatch', 'This invitation cannot be used with this application. Ask for a new invitation from this application.'],
 ])
 
