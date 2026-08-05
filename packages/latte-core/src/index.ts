@@ -18,6 +18,16 @@ export type {
   LoginRedirectResult,
 } from './auth.js'
 export { createPaneClient } from './client.js'
+export { createOrganizationAdministrationService } from './admin.js'
+export type {
+  CreatedOrganizationInvitation,
+  InvitationStatus,
+  MembershipStatus,
+  MembershipUpdate,
+  OrganizationInvitationCreate,
+  OrganizationInvitationResource,
+  OrganizationMembershipResource,
+} from './admin.js'
 export {
   PaneAccessError,
   paneAccessError,

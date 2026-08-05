@@ -7,6 +7,10 @@ type LoginIntentResponse = {
   data: { authorization_url: string; state: string }
 }
 
+type LogoutIntentResponse = {
+  data: { logout_url: string }
+}
+
 export type LoginRedirectResult =
   | { status: 'redirecting' }
   | { status: 'error'; message: string }
@@ -250,8 +254,10 @@ export function createAuthService(
       return tracked
     },
 
-    async logout(): Promise<void> {
-      await pane.delete('/session')
+    async logout(): Promise<string> {
+      const { data } = await pane.delete<LogoutIntentResponse>('/session')
+
+      return validateAuthRedirectUrl(data.data.logout_url, allowedAuthHosts)
     },
   }
 }

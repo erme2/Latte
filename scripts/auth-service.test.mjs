@@ -97,6 +97,66 @@ await assert.rejects(retryingAuth.completeLogin('retry-code', 'retry-state'), /e
 assert.equal(await retryingAuth.completeLogin('retry-code', 'retry-state'), session)
 assert.equal(failedPosts, 2)
 
+let logoutDeletes = 0
+const logoutAuth = createAuthService(
+  axios.create({
+    adapter: async (request) => {
+      assert.equal(request.method, 'delete')
+      assert.equal(request.url, '/session')
+      logoutDeletes += 1
+
+      return {
+        data: {
+          data: {
+            logout_url: 'https://api.workos.com/user_management/sessions/logout?session_id=session_123',
+          },
+        },
+        status: 200,
+        statusText: 'OK',
+        headers: {},
+        config: request,
+      }
+    },
+  }),
+  config,
+)
+
+assert.equal(
+  await logoutAuth.logout(),
+  'https://api.workos.com/user_management/sessions/logout?session_id=session_123',
+)
+assert.equal(logoutDeletes, 1)
+
+const sameOriginLogoutAuth = createAuthService(
+  axios.create({
+    adapter: async (request) => ({
+      data: { data: { logout_url: 'https://example.test/dashboard' } },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: request,
+    }),
+  }),
+  config,
+)
+
+await assert.rejects(sameOriginLogoutAuth.logout(), /untrusted/)
+
+const unsafeLogoutAuth = createAuthService(
+  axios.create({
+    adapter: async (request) => ({
+      data: { data: { logout_url: 'https://evil.example/logout' } },
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: request,
+    }),
+  }),
+  config,
+)
+
+await assert.rejects(unsafeLogoutAuth.logout(), /untrusted/)
+
 assert.equal(callbackRecoveryPath('?code=consumed&state=old', '/dashboard'), '/dashboard')
 assert.equal(callbackRecoveryPath('?error=access_denied', '/dashboard'), '/dashboard')
 assert.equal(callbackRecoveryPath('?page=2', '/dashboard'), null)
