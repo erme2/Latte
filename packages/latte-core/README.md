@@ -21,4 +21,4 @@ UUIDs in runtime configuration are assertions checked against Pane's trusted
 session response; they never select an application or organization on the
 server.
 
-Licensed under Apache-2.0.
+Licensed under GPL-3.0-only.
