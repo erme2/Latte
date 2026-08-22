@@ -149,3 +149,7 @@ repository under the canonical name `erme2/Latte`. Do not use GitHub's
 old-name redirect as a permanent dependency. See the
 [repository rename record](docs/repository-rename.md) for the migration and
 verification checklist.
+
+## License
+
+Latte is licensed under GPL-3.0-only.
