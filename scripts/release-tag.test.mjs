@@ -39,6 +39,7 @@ assert.match(workflow, /push:\n\s+branches:\n\s+- main/);
 assert.doesNotMatch(workflow, /pull_request/);
 assert.match(workflow, /^permissions:\n\s+contents: read/m);
 assert.match(workflow, /cancel-in-progress: false/);
+assert.match(workflow, /^  queue: max$/m);
 for (const step of ['npm ci', 'npm test', 'npm run lint', 'npm run build']) {
   assert.match(workflow, new RegExp(`run: ${step}\n`));
 }

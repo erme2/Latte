@@ -11,9 +11,12 @@ on:
 permissions:
   contents: read
 
+# Runs execute one at a time in push order. queue: max keeps every pending
+# run; the default keeps only one and cancels the rest, skipping their tags.
 concurrency:
   group: release
   cancel-in-progress: false
+  queue: max
 
 jobs:
   checks:

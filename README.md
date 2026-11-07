@@ -147,8 +147,10 @@ a production web server.
 Every merge to `main` runs the [Release workflow](.github/workflows/release.yml):
 tests, lint and build, then the merge commit is tagged with the next patch
 version (`v0.1.0` first, then `v0.1.1`, `v0.1.2`...). A commit that already has
-a `vX.Y.Z` tag is not tagged again, and a failed check creates no tag. Deploys
-from `erme2/deploy` use the latest tag by default.
+a `vX.Y.Z` tag is not tagged again, and a failed check creates no tag. Release
+runs queue and execute one at a time in merge order, so merges that land close
+together each get their own tag. Deploys from `erme2/deploy` use the latest tag
+by default.
 
 For a minor or major release, tag the merge commit by hand; later merges bump
 the patch from it:
