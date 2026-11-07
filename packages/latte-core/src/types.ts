@@ -5,11 +5,16 @@ export const organizationRoles = [
 
 export type OrganizationRole = (typeof organizationRoles)[number]
 
+export type LatteAdminOnlyConfig = {
+  productAppUrl: string
+}
+
 export type LatteRuntimeConfig = {
   paneBaseUrl: string
   expectedApplicationId: string
   expectedOrganizationId: string
   expectedOrigin: string
+  adminOnly?: LatteAdminOnlyConfig
 }
 
 export type Resource<TType extends string, TAttributes> = {

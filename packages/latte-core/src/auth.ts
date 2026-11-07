@@ -1,6 +1,6 @@
 import type { AxiosInstance } from 'axios'
 import { paneErrorCode, paneErrorStatus } from './errors.js'
-import { assertLatteSession } from './session.js'
+import { adminOnlyRedirectUrl, assertLatteSession } from './session.js'
 import type { LatteRuntimeConfig, LatteSession } from './types.js'
 
 type LoginIntentResponse = {
@@ -17,6 +17,7 @@ export type LoginRedirectResult =
 
 export type InitialAuthenticationResult =
   | { status: 'authenticated'; session: LatteSession; fromCallback: boolean }
+  | { status: 'product_redirect'; url: string }
   | { status: 'error'; message: string }
 
 export type InvitationTokenResult =
@@ -134,6 +135,7 @@ export function callbackRecoveryPath(search: string, defaultPath: string): strin
 export async function resolveInitialAuthentication(
   search: string,
   auth: InitialAuthService,
+  config?: LatteRuntimeConfig,
 ): Promise<InitialAuthenticationResult> {
   const params = new URLSearchParams(search)
   const providerError = params.get('error')
@@ -158,23 +160,28 @@ export async function resolveInitialAuthentication(
     return { status: 'error', message: 'The authentication callback is incomplete.' }
   }
 
+  let session: LatteSession
+  let fromCallback = false
+
   if (code && state) {
     try {
-      return {
-        status: 'authenticated',
-        session: await auth.completeLogin(code, state),
-        fromCallback: true,
-      }
+      session = await auth.completeLogin(code, state)
+      fromCallback = true
     } catch (error) {
       return { status: 'error', message: authenticationFailureMessage(error) }
     }
+  } else {
+    // A signed-out visitor gets Pane's 401 here, before any admin-only check.
+    session = await auth.session()
   }
 
-  return {
-    status: 'authenticated',
-    session: await auth.session(),
-    fromCallback: false,
+  const productAppUrl = config ? adminOnlyRedirectUrl(session, config) : null
+
+  if (productAppUrl) {
+    return { status: 'product_redirect', url: productAppUrl }
   }
+
+  return { status: 'authenticated', session, fromCallback }
 }
 
 export function validateAuthRedirectUrl(value: string, allowedHosts: readonly string[]): string {

@@ -68,13 +68,26 @@ export default function App<Services extends object>({ runtime, product }: Props
           return
         }
 
-        const initial = await resolveInitialAuthentication(window.location.search, runtime.auth)
+        const initial = await resolveInitialAuthentication(
+          window.location.search,
+          runtime.auth,
+          runtime.config,
+        )
 
         if (!active) return
 
         if (initial.status === 'error') {
           setAuthState('error')
           setMessage(initial.message)
+          return
+        }
+
+        if (initial.status === 'product_redirect') {
+          // Admin-only console: non-administrators go to the product app and
+          // never see a console screen.
+          setAuthState('redirecting')
+          setMessage('This console is for organization administrators. Redirecting to the app')
+          window.location.replace(initial.url)
           return
         }
 

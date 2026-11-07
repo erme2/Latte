@@ -71,6 +71,12 @@ registration. The committed local Docker example uses
 starting the app. The file contains assertions only and must never contain
 secrets.
 
+To run an install as an admin-only console, add
+`"adminOnly": { "productAppUrl": "https://app.example.test/" }`: signed-in
+members who are not organization administrators are redirected to that product
+app instead of seeing the console. See
+[admin-only console mode](docs/template-contract.md#admin-only-console-mode).
+
 ## Run Locally
 
 ```bash
@@ -149,6 +155,26 @@ The first Latte alpha deploys the static Vite build to Hostinger at
 [Hostinger hosting for the Latte alpha](docs/hostinger-hosting.md) for the
 target directory, public runtime configuration, SPA fallback, cache behavior,
 and smoke checks.
+
+## Releases
+
+Every merge to `main` runs the [Release workflow](.github/workflows/release.yml):
+tests, lint and build, then the merge commit is tagged with the next patch
+version (`v0.1.0` first, then `v0.1.1`, `v0.1.2`...). A commit that already has
+a `vX.Y.Z` tag is not tagged again, and a failed check creates no tag. Release
+runs queue and execute one at a time. GitHub does not guarantee they run in
+merge order, so if a newer merge is tagged first, the older commit is not
+tagged on its own: it ships in the newer tag, and a higher tag never points at
+older code. Deploys from `erme2/deploy` use the latest tag
+by default.
+
+For a minor or major release, tag the merge commit by hand; later merges bump
+the patch from it:
+
+```bash
+git tag v0.2.0 <commit on main>
+git push origin v0.2.0
+```
 
 ## Repository transition
 
