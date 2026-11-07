@@ -1,5 +1,8 @@
 import assert from 'node:assert/strict';
-import { existsSync, readFileSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { existsSync, mkdtempSync, readdirSync, readFileSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join, relative } from 'node:path';
 
 const readme = readFileSync('README.md', 'utf8');
 const docs = readFileSync('docs/hostinger-hosting.md', 'utf8');
@@ -11,8 +14,74 @@ assert.match(htaccess, /RewriteEngine On/);
 assert.match(htaccess, /RewriteCond %\{REQUEST_FILENAME\} -f \[OR\]/);
 assert.match(htaccess, /RewriteCond %\{REQUEST_FILENAME\} -d/);
 assert.match(htaccess, /RewriteRule \^ index\.html \[END\]/);
-assert.match(htaccess, /latte-config\\.json/);
-assert.match(htaccess, /max-age=31536000, immutable/);
+
+// Apache applies <FilesMatch> sections in file order against the file's base
+// name, and a later "Header set" replaces an earlier one. Returns the
+// Cache-Control value a file would get, or undefined.
+function cacheControlFor(htaccessText, fileName) {
+  const sections = htaccessText.matchAll(
+    /<FilesMatch "([^"]+)">\s*Header set Cache-Control "([^"]+)"\s*<\/FilesMatch>/g,
+  );
+  let value;
+  for (const [, pattern, header] of sections) {
+    if (new RegExp(pattern).test(fileName)) {
+      value = header;
+    }
+  }
+  return value;
+}
+
+function filesUnder(dir) {
+  return readdirSync(dir, { recursive: true, withFileTypes: true })
+    .filter((entry) => entry.isFile())
+    .map((entry) => relative(dir, join(entry.parentPath, entry.name)));
+}
+
+const NO_STORE = 'no-store, no-cache, must-revalidate, max-age=0';
+const IMMUTABLE = 'public, max-age=31536000, immutable';
+const REVALIDATE = 'public, max-age=0, must-revalidate';
+
+// Build the real upload artifact into a temporary directory, so the checks
+// cover what Vite actually copies into dist/.
+const outDir = mkdtempSync(join(tmpdir(), 'latte-hostinger-dist-'));
+try {
+  const build = spawnSync(
+    join('node_modules', '.bin', 'vite'),
+    ['build', '--outDir', outDir, '--emptyOutDir', '--logLevel', 'error'],
+    { encoding: 'utf8' },
+  );
+  assert.equal(build.status, 0, `vite build failed:\n${build.stdout}${build.stderr}`);
+
+  const distFiles = filesUnder(outDir);
+  const distHtaccess = readFileSync(join(outDir, '.htaccess'), 'utf8');
+
+  assert.equal(distHtaccess, htaccess, 'dist/.htaccess must be the committed public/.htaccess');
+  assert.equal(
+    distFiles.some((file) => file.includes('latte-config.hostinger')),
+    false,
+    'the Hostinger example config must not be copied into dist/',
+  );
+  assert.equal(distFiles.some((file) => file.startsWith('docs')), false);
+
+  assert.equal(cacheControlFor(distHtaccess, 'index.html'), NO_STORE);
+  assert.equal(cacheControlFor(distHtaccess, 'latte-config.json'), NO_STORE);
+
+  // Files served at a fixed URL must revalidate, or a changed favicon could
+  // stay cached for a year.
+  for (const file of ['favicon.svg', 'icons.svg']) {
+    assert.equal(distFiles.includes(file), true, `${file} should be in dist/`);
+    assert.equal(cacheControlFor(distHtaccess, file), REVALIDATE, file);
+  }
+
+  // Vite's hashed build output is the only thing cached as immutable.
+  const hashedAssets = distFiles.filter((file) => file.startsWith('assets'));
+  assert.ok(hashedAssets.length > 0, 'expected hashed assets in dist/assets');
+  for (const file of hashedAssets) {
+    assert.equal(cacheControlFor(distHtaccess, file.split(/[\\/]/).pop()), IMMUTABLE, file);
+  }
+} finally {
+  rmSync(outDir, { recursive: true, force: true });
+}
 
 assert.equal(hostingerConfig.paneBaseUrl, 'https://pane.erme2.com');
 assert.equal(hostingerConfig.expectedOrigin, 'https://latte.erme2.com');

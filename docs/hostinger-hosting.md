@@ -73,8 +73,11 @@ The committed `public/.htaccess` is copied into `dist/` by Vite and provides:
 
 - direct SPA route refresh fallback to `index.html`;
 - no-store cache headers for `index.html` and `latte-config.json`;
-- long-lived immutable caching for built static assets where Hostinger allows
-  Apache headers.
+- long-lived immutable caching only for Vite's hashed build output
+  (`assets/<name>-<hash>.<ext>`), where Hostinger allows Apache headers;
+- revalidation (`max-age=0, must-revalidate`) for static files served at a
+  fixed URL, such as `favicon.svg` and `icons.svg`, so a release that changes
+  them is picked up.
 
 ## Smoke checks
 

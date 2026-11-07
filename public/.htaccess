@@ -12,11 +12,19 @@ Options -MultiViews
 </IfModule>
 
 <IfModule mod_headers.c>
-  <FilesMatch "^index\.html$|^latte-config\.json$">
-    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+  # Files served at a fixed URL (favicon.svg, icons.svg and other files copied
+  # from public/) must revalidate, so a release that changes them shows up.
+  <FilesMatch "\.(?:css|js|mjs|png|jpg|jpeg|gif|svg|webp|ico|woff2?)$">
+    Header set Cache-Control "public, max-age=0, must-revalidate"
   </FilesMatch>
 
-  <FilesMatch "\.(?:css|js|mjs|png|jpg|jpeg|gif|svg|webp|ico|woff2?)$">
+  # Only Vite's hashed build output (assets/<name>-<8 char hash>.<ext>) gets a
+  # new URL whenever its content changes, so only it is cached as immutable.
+  <FilesMatch "-[A-Za-z0-9_-]{8}\.(?:css|js|mjs|png|jpg|jpeg|gif|svg|webp|ico|woff2?)$">
     Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+
+  <FilesMatch "^index\.html$|^latte-config\.json$">
+    Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
   </FilesMatch>
 </IfModule>
