@@ -58,10 +58,38 @@ Deployments serve `/latte-config.json` before React starts:
 }
 ```
 
-All fields are required. Unknown fields, invalid UUIDs, non-canonical origins,
+These four fields are required; `adminOnly` (below) is optional. Unknown fields, invalid UUIDs, non-canonical origins,
 non-loopback HTTP origins, and unusable Pane URLs stop startup with a configuration error. Configuration
 is intentionally public and must contain no passwords, API keys, connection
 credentials, WorkOS secrets, or invitation tokens.
+
+### Admin-only console mode
+
+An install can run as an admin-only console, for example a Sweegly admin
+console at `https://admin.dev.sweegly.co.uk` next to the product app at
+`https://dev.sweegly.co.uk/`:
+
+```json
+{
+  "paneBaseUrl": "/pane",
+  "expectedApplicationId": "01900000-0000-7000-8000-000000000001",
+  "expectedOrganizationId": "01900000-0000-7000-8000-000000000002",
+  "expectedOrigin": "https://admin.dev.sweegly.co.uk",
+  "adminOnly": { "productAppUrl": "https://dev.sweegly.co.uk/" }
+}
+```
+
+After Pane returns the session, a membership whose role is not
+`organization_administrator` is sent to `productAppUrl` with
+`window.location.replace`, before any console screen renders. Signed-out
+visitors still get the normal login flow, and organization administrators use
+the console as usual. Without `adminOnly`, every active member can use the
+console, as before.
+
+`productAppUrl` must be a credential-free HTTPS URL (HTTP only for loopback
+development hosts) without a fragment, on a different origin than
+`expectedOrigin`. This is a frontend gate only: Pane still enforces
+admin-only actions such as invitations and membership management server side.
 
 Root-relative Pane bases use one leading slash and contain no authority, dot
 segments, query, or fragment. Absolute bases are canonical HTTPS URLs, with

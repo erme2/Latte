@@ -1,4 +1,4 @@
-import type { LatteRuntimeConfig } from './types.js'
+import type { LatteAdminOnlyConfig, LatteRuntimeConfig } from './types.js'
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
 const portPattern = '(?:[1-9][0-9]{0,3}|[1-5][0-9]{4}|6[0-4][0-9]{3}|65[0-4][0-9]{2}|655[0-2][0-9]|6553[0-5])'
@@ -103,6 +103,55 @@ function expectedOrigin(config: Record<string, unknown>): string {
   return parsed.origin
 }
 
+// Optional admin-only console mode: non-administrators are sent to the
+// product app instead of seeing console screens.
+function adminOnly(config: Record<string, unknown>, consoleOrigin: string): LatteAdminOnlyConfig | undefined {
+  if (config.adminOnly === undefined) {
+    return undefined
+  }
+
+  let settings: Record<string, unknown>
+
+  try {
+    settings = objectValue(config.adminOnly)
+  } catch {
+    throw new Error('adminOnly must be an object with productAppUrl.')
+  }
+
+  const unknown = Object.keys(settings).filter((key) => key !== 'productAppUrl')
+
+  if (unknown.length > 0) {
+    throw new Error(`Unknown adminOnly configuration: ${unknown.join(', ')}.`)
+  }
+
+  const value = requiredString(settings, 'productAppUrl')
+  let parsed: URL
+
+  try {
+    parsed = new URL(value)
+  } catch {
+    throw new Error('adminOnly.productAppUrl must be an absolute HTTP(S) URL.')
+  }
+
+  const loopbackHosts = new Set(['localhost', '127.0.0.1', '[::1]'])
+  const allowedProtocol =
+    parsed.protocol === 'https:' ||
+    (parsed.protocol === 'http:' && loopbackHosts.has(parsed.hostname.toLowerCase()))
+
+  if (!allowedProtocol || parsed.username || parsed.password || parsed.hash) {
+    throw new Error(
+      'adminOnly.productAppUrl must be a credential-free HTTPS URL, or loopback HTTP URL, without a fragment.',
+    )
+  }
+
+  // Redirecting non-admins back to this console would loop.
+  if (parsed.origin === consoleOrigin) {
+    throw new Error('adminOnly.productAppUrl must be on a different origin than this console.')
+  }
+
+  return { productAppUrl: parsed.toString() }
+}
+
 export function parseLatteRuntimeConfig(value: unknown): LatteRuntimeConfig {
   const config = objectValue(value)
   const allowed = new Set([
@@ -110,6 +159,7 @@ export function parseLatteRuntimeConfig(value: unknown): LatteRuntimeConfig {
     'expectedApplicationId',
     'expectedOrganizationId',
     'expectedOrigin',
+    'adminOnly',
   ])
   const unknown = Object.keys(config).filter((key) => !allowed.has(key))
 
@@ -117,11 +167,15 @@ export function parseLatteRuntimeConfig(value: unknown): LatteRuntimeConfig {
     throw new Error(`Unknown Latte runtime configuration: ${unknown.join(', ')}.`)
   }
 
+  const origin = expectedOrigin(config)
+  const adminOnlySettings = adminOnly(config, origin)
+
   return {
     paneBaseUrl: paneBaseUrl(config),
     expectedApplicationId: expectedUuid(config, 'expectedApplicationId'),
     expectedOrganizationId: expectedUuid(config, 'expectedOrganizationId'),
-    expectedOrigin: expectedOrigin(config),
+    expectedOrigin: origin,
+    ...(adminOnlySettings ? { adminOnly: adminOnlySettings } : {}),
   }
 }
 

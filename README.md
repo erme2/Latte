@@ -71,6 +71,12 @@ registration. The committed local Docker example uses
 starting the app. The file contains assertions only and must never contain
 secrets.
 
+To run an install as an admin-only console, add
+`"adminOnly": { "productAppUrl": "https://app.example.test/" }`: signed-in
+members who are not organization administrators are redirected to that product
+app instead of seeing the console. See
+[admin-only console mode](docs/template-contract.md#admin-only-console-mode).
+
 ## Run Locally
 
 ```bash
