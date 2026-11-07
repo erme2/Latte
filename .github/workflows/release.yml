@@ -11,8 +11,9 @@ on:
 permissions:
   contents: read
 
-# Runs execute one at a time in push order. queue: max keeps every pending
-# run; the default keeps only one and cancels the rest, skipping their tags.
+# Runs execute one at a time. queue: max keeps every pending run; the default
+# keeps only one and cancels the rest. GitHub does not guarantee the queue order,
+# so release-tag.mjs skips a commit already contained in a newer tag.
 concurrency:
   group: release
   cancel-in-progress: false
@@ -55,6 +56,9 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Full history so release-tag.mjs can compare this commit with the latest tag.
+          fetch-depth: 0
 
       - name: Pick the release tag
         id: pick
@@ -77,5 +81,5 @@ jobs:
           if [ -n "$TAG" ]; then
             echo "Tagged \`$GITHUB_SHA\` as **$TAG**" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "\`$GITHUB_SHA\` is already tagged; nothing to do" >> "$GITHUB_STEP_SUMMARY"
+            echo "\`$GITHUB_SHA\` is already tagged or included in the latest tag; nothing to do" >> "$GITHUB_STEP_SUMMARY"
           fi
