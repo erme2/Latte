@@ -142,6 +142,22 @@ deploy this Compose service or use it as a production runtime. A production
 deployment must run `npm run build` and serve the generated `dist/` assets with
 a production web server.
 
+## Releases
+
+Every merge to `main` runs the [Release workflow](.github/workflows/release.yml):
+tests, lint and build, then the merge commit is tagged with the next patch
+version (`v0.1.0` first, then `v0.1.1`, `v0.1.2`...). A commit that already has
+a `vX.Y.Z` tag is not tagged again, and a failed check creates no tag. Deploys
+from `erme2/deploy` use the latest tag by default.
+
+For a minor or major release, tag the merge commit by hand; later merges bump
+the patch from it:
+
+```bash
+git tag v0.2.0 <commit on main>
+git push origin v0.2.0
+```
+
 ## Repository transition
 
 This repository continues the complete history of the original `erme2/Burro`

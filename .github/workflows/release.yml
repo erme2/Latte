@@ -1,0 +1,78 @@
+name: Release
+
+# Every merge to main that passes the checks is tagged with the next vX.Y.Z.
+# erme2/deploy deploys the latest tag by default.
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run tests
+        run: npm test
+
+      - name: Run lint
+        run: npm run lint
+
+      - name: Run build
+        run: npm run build
+
+  tag:
+    needs: checks
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pick the release tag
+        id: pick
+        run: |
+          set -euo pipefail
+          tag="$(git ls-remote --tags origin | node scripts/release-tag.mjs "$GITHUB_SHA")"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Create the tag
+        if: steps.pick.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.pick.outputs.tag }}
+        run: gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/tags/$TAG" -f sha="$GITHUB_SHA"
+
+      - name: Summary
+        env:
+          TAG: ${{ steps.pick.outputs.tag }}
+        run: |
+          if [ -n "$TAG" ]; then
+            echo "Tagged \`$GITHUB_SHA\` as **$TAG**" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "\`$GITHUB_SHA\` is already tagged; nothing to do" >> "$GITHUB_STEP_SUMMARY"
+          fi
