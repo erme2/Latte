@@ -21,6 +21,9 @@ product features never need to modify authentication internals.
 7. Latte verifies that the returned application and organization UUIDs match
    its public deployment expectations. They are assertions only; Latte never
    asks Pane to select an application or organization.
+8. On an admin-only install (`adminOnly` in `/latte-config.json`), a session
+   whose membership is not `organization_administrator` is redirected to the
+   configured product app instead of rendering the console.
 
 Callback exchange is single-flight by code and state so React development
 effect replay cannot consume a one-time code twice. A failed callback retry

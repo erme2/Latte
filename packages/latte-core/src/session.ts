@@ -37,3 +37,16 @@ export function hasOrganizationRole(
 ): boolean {
   return allowedRoles.includes(session.data.membership.attributes.role)
 }
+
+// Where an admin-only console sends this session instead of rendering, or
+// null when it may render. Pane still enforces admin-only actions server side.
+export function adminOnlyRedirectUrl(
+  session: LatteSession,
+  config: LatteRuntimeConfig,
+): string | null {
+  if (!config.adminOnly || hasOrganizationRole(session, ['organization_administrator'])) {
+    return null
+  }
+
+  return config.adminOnly.productAppUrl
+}
