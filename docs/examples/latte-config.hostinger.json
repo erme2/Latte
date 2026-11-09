@@ -1,0 +1,6 @@
+{
+  "paneBaseUrl": "https://pane.erme2.com",
+  "expectedApplicationId": "00000000-0000-4000-8000-000000000001",
+  "expectedOrganizationId": "00000000-0000-4000-8000-000000000002",
+  "expectedOrigin": "https://latte.erme2.com"
+}
