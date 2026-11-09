@@ -15,16 +15,25 @@ assert.match(htaccess, /RewriteCond %\{REQUEST_FILENAME\} -f \[OR\]/);
 assert.match(htaccess, /RewriteCond %\{REQUEST_FILENAME\} -d/);
 assert.match(htaccess, /RewriteRule \^ index\.html \[END\]/);
 
-// Apache applies <FilesMatch> sections in file order against the file's base
-// name, and a later "Header set" replaces an earlier one. Returns the
-// Cache-Control value a file would get, or undefined.
-function cacheControlFor(htaccessText, fileName) {
+// Simulates the cache headers in public/.htaccess for a request path.
+// SetEnvIf sets an env var when its regex matches the request path.
+// <FilesMatch> sections apply in file order against the file's base name, and
+// a later "Header set" replaces an earlier one; "env=NAME" makes it apply only
+// when NAME is set. Returns the Cache-Control value, or undefined.
+function cacheControlFor(htaccessText, requestPath) {
+  const baseName = requestPath.split('/').pop();
+  const env = new Set();
+  for (const [, pattern, name] of htaccessText.matchAll(/SetEnvIf Request_URI "([^"]+)" (\w+)/g)) {
+    if (new RegExp(pattern).test(requestPath)) {
+      env.add(name);
+    }
+  }
   const sections = htaccessText.matchAll(
-    /<FilesMatch "([^"]+)">\s*Header set Cache-Control "([^"]+)"\s*<\/FilesMatch>/g,
+    /<FilesMatch "([^"]+)">\s*Header set Cache-Control "([^"]+)"(?: env=(\w+))?\s*<\/FilesMatch>/g,
   );
   let value;
-  for (const [, pattern, header] of sections) {
-    if (new RegExp(pattern).test(fileName)) {
+  for (const [, pattern, header, envName] of sections) {
+    if (new RegExp(pattern).test(baseName) && (!envName || env.has(envName))) {
       value = header;
     }
   }
@@ -63,22 +72,29 @@ try {
   );
   assert.equal(distFiles.some((file) => file.startsWith('docs')), false);
 
-  assert.equal(cacheControlFor(distHtaccess, 'index.html'), NO_STORE);
-  assert.equal(cacheControlFor(distHtaccess, 'latte-config.json'), NO_STORE);
+  assert.equal(cacheControlFor(distHtaccess, '/index.html'), NO_STORE);
+  assert.equal(cacheControlFor(distHtaccess, '/latte-config.json'), NO_STORE);
 
   // Files served at a fixed URL must revalidate, or a changed favicon could
   // stay cached for a year.
   for (const file of ['favicon.svg', 'icons.svg']) {
     assert.equal(distFiles.includes(file), true, `${file} should be in dist/`);
-    assert.equal(cacheControlFor(distHtaccess, file), REVALIDATE, file);
+    assert.equal(cacheControlFor(distHtaccess, `/${file}`), REVALIDATE, file);
   }
 
   // Vite's hashed build output is the only thing cached as immutable.
   const hashedAssets = distFiles.filter((file) => file.startsWith('assets'));
   assert.ok(hashedAssets.length > 0, 'expected hashed assets in dist/assets');
   for (const file of hashedAssets) {
-    assert.equal(cacheControlFor(distHtaccess, file.split(/[\\/]/).pop()), IMMUTABLE, file);
+    assert.equal(cacheControlFor(distHtaccess, `/${file.split(/[\\/]/).join('/')}`), IMMUTABLE, file);
   }
+
+  // Only the path decides immutability: a fixed-URL public/ file whose name
+  // happens to look hashed must still revalidate.
+  for (const path of ['/logo-12345678.svg', '/images/logo-12345678.svg', '/assets/nested/app-12345678.js']) {
+    assert.equal(cacheControlFor(distHtaccess, path), REVALIDATE, path);
+  }
+  assert.match(distHtaccess, /<IfModule mod_setenvif\.c>/);
 } finally {
   rmSync(outDir, { recursive: true, force: true });
 }
