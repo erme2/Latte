@@ -76,6 +76,12 @@ code {
   user-select: all;
 }
 
+.release-badge a {
+  color: inherit;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 @media print {
   .release-badge {
     display: none;
