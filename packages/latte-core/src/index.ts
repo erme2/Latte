@@ -55,3 +55,11 @@ export type {
   Resource,
   VersionedItemResponse,
 } from './types.js'
+export {
+  developmentRelease,
+  latteReleaseDetails,
+  latteReleaseLabel,
+  loadLatteRelease,
+  parseLatteRelease,
+} from './release.js'
+export type { LatteRelease } from './release.js'
