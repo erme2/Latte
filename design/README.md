@@ -61,7 +61,7 @@ figcraft-cli export design/latte-cpanel.figcraft -o design/previews/ --page Mobi
 
 - [x] Design file `design/latte-cpanel.figcraft`: shell, list, form and states in light and dark, plus phone width
 - [x] Token values for both themes, matching the table above
-- [ ] PNG previews in `design/previews/` (export not yet run)
+- [x] PNG previews in `design/previews/` (Desktop and Mobile, exported with figcraft-cli 0.18.0)
 - [ ] Review and approval of the designs before frontend work starts
 
 ## Out of scope
