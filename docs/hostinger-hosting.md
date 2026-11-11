@@ -52,6 +52,16 @@ This file is public assertion data. It must never contain passwords, API keys,
 database credentials, WorkOS secrets, invitation tokens, or user-specific
 session data.
 
+## Release version
+
+The deploy (erme2/deploy) also writes `/latte-release.json` with the
+version, ref, commit and build time, for example
+`{"version":"0.1.3","ref":"v0.1.3","commit":"400c9dd…","built_at":"…"}`.
+Latte shows it at the bottom right of every screen, including loading,
+redirect and configuration-error screens: `v0.1.3` for a tagged release,
+`dev · 400c9dd` for an untagged deploy, `dev` for local builds without the file.
+Hover it for the ref, commit and build time. The file holds no secrets.
+
 The Vite `VITE_PANE_PROXY_*` variables are for local development only. They are
 not used by the static Hostinger build.
 
@@ -88,6 +98,8 @@ After deployment, verify:
 - `https://latte.erme2.com/auth/callback` refreshes directly and serves the SPA.
 - `https://latte.erme2.com/latte-config.json` returns the production public
   configuration with `expectedOrigin` set to `https://latte.erme2.com`.
+- The bottom-right badge shows the deployed version, matching
+  `https://latte.erme2.com/latte-release.json`.
 - Browser requests use Pane at `https://pane.erme2.com`.
 - `https://pane.erme2.com` still resolves after the Latte upload.
 - `https://erme2.com` deploys do not delete the `/latte` directory.
