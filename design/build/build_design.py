@@ -14,6 +14,7 @@ screen switches theme by switching its mode. Colour values come from Latte's CSS
 in src/index.css; the dark values are derived for the same contrast.
 """
 import json
+import re
 import sys
 
 steps = []
@@ -117,6 +118,58 @@ def screen(name, x, y, w, h, mode):
     return frame
 
 
+# ---------------------------------------------------------------- logo and icons
+# Latte means milk: a cup with steam over a saucer. Drawn on a 64-unit grid as strokes, the
+# same geometry as design/logo/latte-logo.svg.
+LOGO_PATHS = [
+    "M12 24H48V42A10 10 0 0 1 38 52H22A10 10 0 0 1 12 42Z",  # cup
+    "M48 30H52A6 6 0 0 1 52 42H48",                          # handle
+    "M6 56H58",                                               # saucer
+    "M22 16c-3-3 3-5 0-9M32 16c-3-3 3-5 0-9M42 16c-3-3 3-5 0-9",  # steam
+]
+ICONS = {
+    "menu": ["M4 6h16", "M4 12h16", "M4 18h16"],
+    "chevronLeft": ["M15 18l-6-6 6-6"],
+}
+_num = re.compile(r"[a-zA-Z]|-?\d*\.?\d+(?:e-?\d+)?")
+
+
+def scale_path(d, k):
+    """Scale SVG path data by k. Arc flags and rotation stay as they are."""
+    out, cmd, argi = [], None, 0
+    for token in _num.findall(d):
+        if token.isalpha():
+            cmd, argi = token, 0
+            out.append(token)
+            continue
+        value = float(token)
+        if cmd in "aA" and argi % 7 in (2, 3, 4):
+            out.append(token)
+        else:
+            out.append(f"{value * k:.3f}")
+        argi += 1
+    return " ".join(out)
+
+
+def stroke_paths(parent, name, paths, size, view, color, weight):
+    box = F(parent, name, w=size, h=size)
+    k = size / view
+    for d in paths:
+        S("node.create", {"type": "vector", "parent": box, "x": 0, "y": 0, "path": scale_path(d, k),
+                          "select": False,
+                          "props": {"fill": None, "stroke": col(color), "strokeWeight": round(weight * k, 2),
+                                    "strokeCap": "round", "strokeJoin": "round"}}, ref=False)
+    return box
+
+
+def logo(parent, size):
+    return stroke_paths(parent, "logo", LOGO_PATHS, size, 64, "accent", 3.5)
+
+
+def icon(parent, key, size, color):
+    return stroke_paths(parent, f"icon/{key}", ICONS[key], size, 24, color, 2)
+
+
 CUSTOMERS = [
     ("Mara Lopez", "mara@example.com", "Active", "2 Nov 2026"),
     ("Tom Reilly", "tom@example.com", "Active", "28 Oct 2026"),
@@ -129,7 +182,9 @@ NAV = ["Customers", "Products", "Orders", "Settings"]
 
 def sidebar(parent):
     side = F(parent, "Sidebar", layout="vertical", w=240, fill="surface", padding=20, gap=6, sV="fill")
-    T(side, "Latte", 22, "bold", "textStrong")
+    brand = F(side, "Brand", layout="horizontal", gap=10, crossAlign="center")
+    logo(brand, 32)
+    T(brand, "Latte", 22, "bold", "textStrong")
     rect(side, "spacer", 16, "bg", radius=0)
     for item in NAV:
         active = item == "Customers"
@@ -138,13 +193,43 @@ def sidebar(parent):
         T(row, item, 15, "semibold" if active else "regular", "accent" if active else "text")
 
 
-def topbar(parent):
-    bar = F(parent, "Topbar", layout="horizontal", h=64, fill="surface", padding=[0, 32, 0, 32],
+def topbar(parent, compact=False, back=False):
+    """Desktop: organization name and user. Phone: a menu button (or back on a form) beside the logo."""
+    pad = 16 if compact else 32
+    bar = F(parent, "Topbar", layout="horizontal", h=64, fill="surface", padding=[0, pad, 0, pad],
             mainAlign="spaceBetween", crossAlign="center", sH="fill")
-    T(bar, "Acme Co", 14, "semibold", "muted")
+    left = F(bar, "Navigation", layout="horizontal", gap=12, crossAlign="center")
+    if compact:
+        icon(left, "chevronLeft" if back else "menu", 24, "text")
+        logo(left, 28)
+        T(left, "Latte", 18, "bold", "textStrong")
+    else:
+        T(left, "Acme Co", 14, "semibold", "muted")
     user = F(bar, "User", layout="horizontal", gap=10, crossAlign="center")
-    T(user, "Admin", 14, "regular", "muted")
+    if not compact:
+        T(user, "Admin", 14, "regular", "muted")
     F(user, "avatar", w=32, h=32, fill="accent", cornerRadius=16)
+
+
+def page_button(parent, label, active=False, disabled=False):
+    color = "accentText" if active else "muted" if disabled else "text"
+    b = F(parent, f"page/{label}", layout="horizontal", h=36, padding=[0, 12, 0, 12], cornerRadius=8,
+          fill="accent" if active else "surface", stroke="border", strokeWeight=1, crossAlign="center")
+    T(b, label, 14, "semibold", color)
+
+
+def pager(parent, compact=False):
+    bar = F(parent, "Pagination", layout="horizontal", gap=8, crossAlign="center", mainAlign="spaceBetween",
+            sH="fill")
+    T(bar, "Page 1 of 9" if compact else "Showing 1–5 of 42 customers", 13, "regular", "muted")
+    controls = F(bar, "Controls", layout="horizontal", gap=8, crossAlign="center")
+    page_button(controls, "Previous", disabled=True)
+    if not compact:
+        for number in ("1", "2", "3"):
+            page_button(controls, number, active=number == "1")
+        T(controls, "…", 14, "regular", "muted")
+        page_button(controls, "9")
+    page_button(controls, "Next")
 
 
 def content(parent, name, padding=32):
@@ -179,7 +264,7 @@ def list_screen(parent, compact=False):
                    strokeWeight=1, cornerRadius=10, padding=[0, 14, 0, 14], crossAlign="center")
         T(search, "Search customers", 15, "regular", "muted")
     customer_table(c, compact=compact)
-    T(c, "Showing 1–5 of 42 customers", 13, "regular", "muted")
+    pager(c, compact=compact)
 
 
 def field(parent, label, value):
@@ -238,7 +323,7 @@ def mobile_page():
         for mode, x in (("Light", 0), ("Dark", 430)):
             frame = screen(f"Mobile / {mode} / {label}", x, row * 900, 390, 844, mode)
             page = F(frame, "Screen", layout="vertical", sH="fill", sV="fill", fill="bg")
-            topbar(page)
+            topbar(page, compact=True, back=label == "Edit customer")
             build(page, compact=True)
 
 
