@@ -248,8 +248,11 @@ def customer_table(parent, compact=False):
                 crossAlign="center", sH="fill", stroke="border", strokeWeight=1)
         T(row, name, 15, "semibold", "textStrong", fill_width=True)
         T(row, email, 14, "regular", "text", fill_width=True)
-        status_pill(row, status, status == "Active")
-        if not compact:
+        if compact:
+            status_pill(row, status, status == "Active")
+        else:
+            cell = F(row, "cell/status", layout="horizontal", crossAlign="center", sH="fill")
+            status_pill(cell, status, status == "Active")
             T(row, updated, 14, "regular", "muted", fill_width=True)
 
 
