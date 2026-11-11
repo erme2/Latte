@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" fill="none" stroke="#31795F" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round">
+  <title>Latte</title>
+  <path d="M12 24H48V42A10 10 0 0 1 38 52H22A10 10 0 0 1 12 42Z"/>
+  <path d="M48 30H52A6 6 0 0 1 52 42H48"/>
+  <path d="M6 56H58"/>
+  <path d="M22 16c-3-3 3-5 0-9M32 16c-3-3 3-5 0-9M42 16c-3-3 3-5 0-9"/>
+</svg>
