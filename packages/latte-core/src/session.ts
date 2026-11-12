@@ -50,3 +50,23 @@ export function adminOnlyRedirectUrl(
 
   return config.adminOnly.productAppUrl
 }
+
+// Where an admin-only console sends a signed-out visitor to sign in: the configured
+// loginUrl with `next` set to the console page they opened (origin, path and query,
+// no fragment). Null when the console should start its own sign-in.
+export function adminOnlyLoginUrl(
+  config: LatteRuntimeConfig | undefined,
+  consoleUrl: string,
+): string | null {
+  const loginUrl = config?.adminOnly?.loginUrl
+
+  if (!loginUrl) {
+    return null
+  }
+
+  const current = new URL(consoleUrl)
+  const login = new URL(loginUrl)
+  login.searchParams.set('next', `${current.origin}${current.pathname}${current.search}`)
+
+  return login.toString()
+}

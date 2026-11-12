@@ -7,6 +7,7 @@ export type OrganizationRole = (typeof organizationRoles)[number]
 
 export type LatteAdminOnlyConfig = {
   productAppUrl: string
+  loginUrl?: string
 }
 
 export type LatteRuntimeConfig = {
