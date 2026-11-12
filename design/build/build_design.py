@@ -33,6 +33,7 @@ TOKENS = {
     "muted": ("#5F7389", "#94A6B8"),
     "border": ("#D6E0EA", "#2A3D50"),
     "accent": ("#2B6CA3", "#6AAEE6"),
+    "accentStrong": ("#1F5685", "#9FD0F5"),  # src/index.css --accent-strong: primary buttons
     "accentText": ("#FFFFFF", "#0B1622"),
     "accentSoft": ("#E3EEF8", "#1E3A52"),
     "danger": ("#B42318", "#F97066"),
@@ -105,7 +106,7 @@ def rect(parent, name, h, fill, radius=8):
 def button(parent, label, primary=True):
     extra = {} if primary else {"stroke": "border", "strokeWeight": 1}
     b = F(parent, f"button/{label}", layout="horizontal", h=40, padding=[0, 18, 0, 18], cornerRadius=10,
-          fill="accent" if primary else "surface", crossAlign="center", **extra)
+          fill="accentStrong" if primary else "surface", crossAlign="center", **extra)
     T(b, label, 15, "semibold", "accentText" if primary else "text")
     return b
 
