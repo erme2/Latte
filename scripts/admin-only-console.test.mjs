@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
+  adminOnlyLoginUrl,
   adminOnlyRedirectUrl,
   isAuthenticationRequired,
   parseLatteRuntimeConfig,
@@ -52,6 +53,35 @@ for (const [adminOnly, message] of [
 ]) {
   assert.throws(() => parseLatteRuntimeConfig({ ...baseConfig, adminOnly }), message)
 }
+
+// Optional loginUrl: where signed-out visitors go instead of the console's own login.
+const loginUrl = 'https://app.example.test/login'
+assert.deepEqual(parseLatteRuntimeConfig({ ...baseConfig, adminOnly: { productAppUrl, loginUrl } }).adminOnly, {
+  productAppUrl,
+  loginUrl,
+})
+assert.equal(
+  parseLatteRuntimeConfig({ ...baseConfig, adminOnly: { productAppUrl } }).adminOnly.loginUrl,
+  undefined,
+)
+for (const [settings, message] of [
+  [{ productAppUrl, loginUrl: '/login' }, /adminOnly\.loginUrl must be an absolute HTTP\(S\) URL/],
+  [{ productAppUrl, loginUrl: 'http://app.example.test/login' }, /adminOnly\.loginUrl must be a credential-free HTTPS URL/],
+  [{ productAppUrl, loginUrl: 'https://user:pass@app.example.test/login' }, /adminOnly\.loginUrl must be a credential-free HTTPS URL/],
+  [{ productAppUrl, loginUrl: 'https://app.example.test/login#top' }, /adminOnly\.loginUrl must be a credential-free HTTPS URL, or loopback HTTP URL, without a fragment/],
+  [{ productAppUrl, loginUrl: 'https://admin.example.test/login' }, /adminOnly\.loginUrl must be on a different origin than this console/],
+  [{ productAppUrl, loginUrl: '  ' }, /requires loginUrl/],
+]) {
+  assert.throws(() => parseLatteRuntimeConfig({ ...baseConfig, adminOnly: settings }), message)
+}
+assert.deepEqual(
+  parseLatteRuntimeConfig({
+    ...baseConfig,
+    expectedOrigin: 'http://localhost:5173',
+    adminOnly: { productAppUrl: 'http://localhost:5174/', loginUrl: 'http://localhost:5174/login' },
+  }).adminOnly,
+  { productAppUrl: 'http://localhost:5174/', loginUrl: 'http://localhost:5174/login' },
+)
 
 function sessionWithRole(role) {
   return {
@@ -152,6 +182,17 @@ await assert.rejects(
   (error) => isAuthenticationRequired(error),
 )
 
+// With loginUrl, a signed-out visitor is sent to it with next set to the console page
+// they opened (no fragment). Without it, the console starts its own login.
+const loginConfig = parseLatteRuntimeConfig({ ...baseConfig, adminOnly: { productAppUrl, loginUrl } })
+assert.equal(
+  adminOnlyLoginUrl(loginConfig, 'https://admin.example.test/customers?page=2#row'),
+  'https://app.example.test/login?next=https%3A%2F%2Fadmin.example.test%2Fcustomers%3Fpage%3D2',
+)
+assert.equal(adminOnlyLoginUrl(adminOnlyConfig, 'https://admin.example.test/'), null)
+assert.equal(adminOnlyLoginUrl(defaultConfig, 'https://admin.example.test/'), null)
+assert.equal(adminOnlyLoginUrl(undefined, 'https://admin.example.test/'), null)
+
 // Without the setting, non-admins use the console as before.
 assert.deepEqual(await resolveInitialAuthentication('', authReturning(member), defaultConfig), {
   status: 'authenticated',
@@ -169,8 +210,15 @@ assert.ok(
   'the admin-only redirect must happen before the session is stored and the console renders',
 )
 
+// Signed-out visitors on a loginUrl console are redirected, and the console never
+// starts its own login there: beginLogin is only called from beginSignIn.
+assert.match(app, /adminOnlyLoginUrl\(runtime\.config, window\.location\.href\)/)
+assert.match(app, /window\.location\.replace\(loginUrl\)/)
+assert.equal(app.match(/runtime\.auth\.beginLogin\(/g)?.length, 1, 'beginLogin is only called from beginSignIn')
+
 for (const doc of ['docs/template-contract.md', 'README.md']) {
   const text = readFileSync(doc, 'utf8')
   assert.match(text, /adminOnly/, `${doc} documents adminOnly`)
   assert.match(text, /productAppUrl/, `${doc} documents productAppUrl`)
 }
+assert.match(readFileSync('docs/template-contract.md', 'utf8'), /loginUrl/, 'template contract documents loginUrl')

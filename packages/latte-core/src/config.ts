@@ -103,8 +103,9 @@ function expectedOrigin(config: Record<string, unknown>): string {
   return parsed.origin
 }
 
-// Optional admin-only console mode: non-administrators are sent to the
-// product app instead of seeing console screens.
+// Optional admin-only console mode: non-administrators are sent to the product app
+// instead of seeing console screens. With loginUrl, signed-out visitors are sent to
+// that sign-in page instead of starting a login from the console.
 function adminOnly(config: Record<string, unknown>, consoleOrigin: string): LatteAdminOnlyConfig | undefined {
   if (config.adminOnly === undefined) {
     return undefined
@@ -118,19 +119,33 @@ function adminOnly(config: Record<string, unknown>, consoleOrigin: string): Latt
     throw new Error('adminOnly must be an object with productAppUrl.')
   }
 
-  const unknown = Object.keys(settings).filter((key) => key !== 'productAppUrl')
+  const unknown = Object.keys(settings).filter((key) => key !== 'productAppUrl' && key !== 'loginUrl')
 
   if (unknown.length > 0) {
     throw new Error(`Unknown adminOnly configuration: ${unknown.join(', ')}.`)
   }
 
-  const value = requiredString(settings, 'productAppUrl')
+  const productAppUrl = externalUrl(requiredString(settings, 'productAppUrl'), 'productAppUrl', consoleOrigin)
+
+  if (settings.loginUrl === undefined) {
+    return { productAppUrl }
+  }
+
+  return {
+    productAppUrl,
+    loginUrl: externalUrl(requiredString(settings, 'loginUrl'), 'loginUrl', consoleOrigin),
+  }
+}
+
+// An absolute URL on another origin, reached over HTTPS (or loopback HTTP), without
+// credentials or a fragment. Returns the serialized URL.
+function externalUrl(value: string, key: 'productAppUrl' | 'loginUrl', consoleOrigin: string): string {
   let parsed: URL
 
   try {
     parsed = new URL(value)
   } catch {
-    throw new Error('adminOnly.productAppUrl must be an absolute HTTP(S) URL.')
+    throw new Error(`adminOnly.${key} must be an absolute HTTP(S) URL.`)
   }
 
   const loopbackHosts = new Set(['localhost', '127.0.0.1', '[::1]'])
@@ -140,16 +155,16 @@ function adminOnly(config: Record<string, unknown>, consoleOrigin: string): Latt
 
   if (!allowedProtocol || parsed.username || parsed.password || parsed.hash) {
     throw new Error(
-      'adminOnly.productAppUrl must be a credential-free HTTPS URL, or loopback HTTP URL, without a fragment.',
+      `adminOnly.${key} must be a credential-free HTTPS URL, or loopback HTTP URL, without a fragment.`,
     )
   }
 
-  // Redirecting non-admins back to this console would loop.
+  // Redirecting back to this console would loop.
   if (parsed.origin === consoleOrigin) {
-    throw new Error('adminOnly.productAppUrl must be on a different origin than this console.')
+    throw new Error(`adminOnly.${key} must be on a different origin than this console.`)
   }
 
-  return { productAppUrl: parsed.toString() }
+  return parsed.toString()
 }
 
 export function parseLatteRuntimeConfig(value: unknown): LatteRuntimeConfig {

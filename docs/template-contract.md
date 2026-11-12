@@ -81,14 +81,27 @@ console at `https://admin.dev.sweegly.co.uk` next to the product app at
 
 After Pane returns the session, a membership whose role is not
 `organization_administrator` is sent to `productAppUrl` with
-`window.location.replace`, before any console screen renders. Signed-out
-visitors still get the normal login flow, and organization administrators use
-the console as usual. Without `adminOnly`, every active member can use the
-console, as before.
+`window.location.replace`, before any console screen renders. Organization
+administrators use the console as usual. Without `adminOnly`, every active
+member can use the console, as before.
 
-`productAppUrl` must be a credential-free HTTPS URL (HTTP only for loopback
-development hosts) without a fragment, on a different origin than
-`expectedOrigin`. This is a frontend gate only: Pane still enforces
+A signed-out visitor starts their own login from the console, unless
+`adminOnly.loginUrl` is set. Then the console sends them to `loginUrl` with
+`next` set to the console page they opened (origin, path and query), and the
+console never starts a login of its own. For the Sweegly dev install, where
+login lives in the Sweegly app (see `hostinger-hosting.md` for the full
+`PUBLIC_CONFIG_JSON`):
+
+```json
+"adminOnly": {
+  "productAppUrl": "https://appdev.sweegly.co.uk/",
+  "loginUrl": "https://appdev.sweegly.co.uk/login"
+}
+```
+
+`productAppUrl` and `loginUrl` must each be a credential-free HTTPS URL (HTTP
+only for loopback development hosts) without a fragment, on a different origin
+than `expectedOrigin`. This is a frontend gate only: Pane still enforces
 admin-only actions such as invitations and membership management server side.
 
 Root-relative Pane bases use one leading slash and contain no authority, dot

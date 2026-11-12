@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import {
+  adminOnlyLoginUrl,
   attemptLoginRedirect,
   authenticationFailureMessage,
   callbackRecoveryPath,
@@ -10,6 +11,7 @@ import {
   paneAccessFailure,
   resolveInitialAuthentication,
   type LatteSession,
+  type LoginRedirectResult,
 } from '@erme2/latte'
 import type { LatteProduct, LatteRuntime, ProductContext } from './product/contract'
 import { resolveProductRoute } from './product/runtime.mjs'
@@ -19,6 +21,23 @@ type AuthState = 'checking' | 'authenticated' | 'redirecting' | 'error'
 
 function redirectUrl(path: string): string {
   return new URL(path, window.location.origin).toString()
+}
+
+// Starts sign-in. An admin-only console with a loginUrl hands sign-in to that page and
+// never starts its own login; otherwise the console starts login as before.
+function beginSignIn<Services extends object>(
+  runtime: LatteRuntime<Services>,
+  defaultPath: string,
+  invitationToken?: string,
+): Promise<LoginRedirectResult> {
+  const loginUrl = adminOnlyLoginUrl(runtime.config, window.location.href)
+
+  if (loginUrl) {
+    window.location.replace(loginUrl)
+    return Promise.resolve({ status: 'redirecting' })
+  }
+
+  return attemptLoginRedirect(() => runtime.auth.beginLogin(redirectUrl(defaultPath), invitationToken))
 }
 
 function retryAuthentication(defaultPath: string): void {
@@ -57,9 +76,7 @@ export default function App<Services extends object>({ runtime, product }: Props
         if (invitation.status === 'ready' && !hasAuthenticationCallback(window.location.search)) {
           setAuthState('redirecting')
           setMessage('Redirecting to accept invitation')
-          const result = await attemptLoginRedirect(() =>
-            runtime.auth.beginLogin(redirectUrl(product.defaultPath), invitation.token),
-          )
+          const result = await beginSignIn(runtime, product.defaultPath, invitation.token)
 
           if (result.status === 'error' && active) {
             setAuthState('error')
@@ -103,9 +120,7 @@ export default function App<Services extends object>({ runtime, product }: Props
         if (isAuthenticationRequired(error)) {
           setAuthState('redirecting')
           setMessage('Redirecting to sign in')
-          const result = await attemptLoginRedirect(() =>
-            runtime.auth.beginLogin(redirectUrl(product.defaultPath)),
-          )
+          const result = await beginSignIn(runtime, product.defaultPath)
 
           if (result.status === 'error' && active) {
             setAuthState('error')
@@ -146,7 +161,7 @@ export default function App<Services extends object>({ runtime, product }: Props
         setSession(null)
         setAuthState('redirecting')
         setMessage('Your session expired. Redirecting to sign in')
-        void attemptLoginRedirect(() => runtime.auth.beginLogin(redirectUrl(product.defaultPath)))
+        void beginSignIn(runtime, product.defaultPath)
           .then((result) => {
             if (result.status === 'error') {
               setAuthState('error')
