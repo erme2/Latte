@@ -23,16 +23,18 @@ steps = []
 _n = 0
 
 MODES = ["Light", "Dark"]
+# Light values match src/index.css (the Latte logo palette). Dark values are for the design
+# only: the console has no dark theme yet.
 TOKENS = {
-    "bg": ("#F7F8F5", "#121512"),
-    "surface": ("#FFFFFF", "#1B1F1B"),
-    "text": ("#3F453F", "#E4E8E2"),
-    "textStrong": ("#101510", "#F5F7F3"),
-    "muted": ("#667064", "#A3ADA0"),
-    "border": ("#DFE4DC", "#2F362F"),
-    "accent": ("#31795F", "#6CC4A1"),
-    "accentText": ("#FFFFFF", "#0E1510"),
-    "accentSoft": ("#E7F3EE", "#1F3A30"),
+    "bg": ("#F5F8FB", "#0F1B26"),
+    "surface": ("#FFFFFF", "#172635"),
+    "text": ("#2A4A66", "#C9D6E3"),
+    "textStrong": ("#14395C", "#F1F6FB"),
+    "muted": ("#5F7389", "#94A6B8"),
+    "border": ("#D6E0EA", "#2A3D50"),
+    "accent": ("#2B6CA3", "#6AAEE6"),
+    "accentText": ("#FFFFFF", "#0B1622"),
+    "accentSoft": ("#E3EEF8", "#1E3A52"),
     "danger": ("#B42318", "#F97066"),
 }
 FONT = "Inter"

@@ -1,17 +1,20 @@
+/* Palette from the Latte logo (design/logo/latte-logo.svg). Buttons and links use the
+   deeper accent so white text passes WCAG AA (5.6:1); the logo keeps #3A86C8. The same
+   values are the Theme colours in design/build/build_design.py (light mode). */
 :root {
-  --bg: #f7f8f5;
+  --bg: #f5f8fb;
   --surface: #ffffff;
-  --text: #3f453f;
-  --text-strong: #101510;
-  --muted: #667064;
-  --border: #dfe4dc;
-  --accent: #31795f;
-  --accent-strong: #235f4a;
-  --accent-soft: #e7f3ee;
-  --accent-border: #a8cdbf;
+  --text: #2a4a66;
+  --text-strong: #14395c;
+  --muted: #5f7389;
+  --border: #d6e0ea;
+  --accent: #2b6ca3;
+  --accent-strong: #1f5685;
+  --accent-soft: #e3eef8;
+  --accent-border: #a9cbe6;
   --danger: #b42318;
-  --code-bg: #eef1ec;
-  --shadow: 0 16px 40px rgba(30, 40, 35, 0.08);
+  --code-bg: #eef3f8;
+  --shadow: 0 16px 40px rgba(20, 57, 92, 0.08);
 
   font-family:
     Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI',
