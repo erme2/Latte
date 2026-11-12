@@ -52,6 +52,13 @@
   border-bottom: 1px solid var(--border);
 }
 
+.brand-logo {
+  display: block;
+  width: 168px;
+  height: auto;
+  border-radius: 8px;
+}
+
 .topbar nav {
   display: flex;
   align-items: center;

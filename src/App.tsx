@@ -240,7 +240,9 @@ export default function App<Services extends object>({ runtime, product }: Props
       <header className="topbar">
         <div>
           <p className="eyebrow">{product.brand.tagline}</p>
-          <h1>{product.brand.name}</h1>
+          <h1>
+            <img className="brand-logo" src="/latte-logo.svg" alt={product.brand.name} width="168" height="67" />
+          </h1>
         </div>
         <nav aria-label="Primary navigation">
           {product.navigation

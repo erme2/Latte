@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import {
   createProductServices,
   matchRoutePattern,
@@ -61,6 +61,8 @@ const pages = readFileSync('src/product/pages.tsx', 'utf8')
 assert.match(main, /createLatteRuntime\(config, product\)/)
 assert.doesNotMatch(app, /createProductServices|createLatteRuntime/)
 assert.match(app, /product\.notFoundPage/)
+assert.match(app, /<img className="brand-logo" src="\/latte-logo\.svg" alt=\{product\.brand\.name\}/)
+assert.ok(existsSync('public/latte-logo.svg'), 'the shell logo is served from public/')
 assert.doesNotMatch(app, /beginLogin\(redirectUrl\(window\.location\.pathname/)
 assert.match(app, /beginLogin\(redirectUrl\(defaultPath/)
 assert.match(app, /beginSignIn\(runtime, product\.defaultPath\)/)

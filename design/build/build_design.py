@@ -14,8 +14,10 @@ screen switches theme by switching its mode. Colour values come from Latte's CSS
 in src/index.css; the dark values are derived for the same contrast.
 """
 import json
+import os
 import re
 import sys
+import xml.etree.ElementTree as ET
 
 steps = []
 _n = 0
@@ -119,14 +121,12 @@ def screen(name, x, y, w, h, mode):
 
 
 # ---------------------------------------------------------------- logo and icons
-# Latte means milk: a cup with steam over a saucer. Drawn on a 64-unit grid as strokes, the
-# same geometry as design/logo/latte-logo.svg.
-LOGO_PATHS = [
-    "M12 24H48V42A10 10 0 0 1 38 52H22A10 10 0 0 1 12 42Z",  # cup
-    "M48 30H52A6 6 0 0 1 52 42H48",                          # handle
-    "M6 56H58",                                               # saucer
-    "M22 16c-3-3 3-5 0-9M32 16c-3-3 3-5 0-9M42 16c-3-3 3-5 0-9",  # steam
-]
+# The logo is the Latte wordmark (design/logo/latte-logo.svg). Its fills map to theme tokens:
+# the letters use the navy text colour, and the cut-outs (the drop in the a, the small drop in
+# the e) use the surface colour, so they read as holes on either theme.
+SVG_NS = "{http://www.w3.org/2000/svg}"
+LOGO_FILE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "logo", "latte-logo.svg")
+LOGO_FILLS = {"#14395C": "textStrong", "#F5F8FB": "surface"}
 ICONS = {
     "menu": ["M4 6h16", "M4 12h16", "M4 18h16"],
     "chevronLeft": ["M15 18l-6-6 6-6"],
@@ -162,8 +162,19 @@ def stroke_paths(parent, name, paths, size, view, color, weight):
     return box
 
 
-def logo(parent, size):
-    return stroke_paths(parent, "logo", LOGO_PATHS, size, 64, "accent", 3.5)
+def logo(parent, width):
+    """The wordmark at the given width, with its height taken from the SVG's viewBox."""
+    root = ET.parse(LOGO_FILE).getroot()
+    _, _, view_w, view_h = (float(v) for v in root.get("viewBox").split())
+    k = width / view_w
+    box = F(parent, "logo", w=round(width, 2), h=round(view_h * k, 2))
+    for el in root.iter(f"{SVG_NS}path"):
+        token = LOGO_FILLS.get(el.get("fill", "").upper())
+        if token is None:
+            continue
+        S("node.create", {"type": "vector", "parent": box, "x": 0, "y": 0, "path": scale_path(el.get("d"), k),
+                          "select": False, "props": {"fill": col(token)}}, ref=False)
+    return box
 
 
 def icon(parent, key, size, color):
@@ -182,9 +193,7 @@ NAV = ["Customers", "Products", "Orders", "Settings"]
 
 def sidebar(parent):
     side = F(parent, "Sidebar", layout="vertical", w=240, fill="surface", padding=20, gap=6, sV="fill")
-    brand = F(side, "Brand", layout="horizontal", gap=10, crossAlign="center")
-    logo(brand, 32)
-    T(brand, "Latte", 22, "bold", "textStrong")
+    logo(side, 168)
     rect(side, "spacer", 16, "bg", radius=0)
     for item in NAV:
         active = item == "Customers"
@@ -201,8 +210,7 @@ def topbar(parent, compact=False, back=False):
     left = F(bar, "Navigation", layout="horizontal", gap=12, crossAlign="center")
     if compact:
         icon(left, "chevronLeft" if back else "menu", 24, "text")
-        logo(left, 28)
-        T(left, "Latte", 18, "bold", "textStrong")
+        logo(left, 112)
     else:
         T(left, "Acme Co", 14, "semibold", "muted")
     user = F(bar, "User", layout="horizontal", gap=10, crossAlign="center")
