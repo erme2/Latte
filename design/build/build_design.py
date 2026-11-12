@@ -169,11 +169,23 @@ def logo(parent, width):
     k = width / view_w
     box = F(parent, "logo", w=round(width, 2), h=round(view_h * k, 2))
     for el in root.iter(f"{SVG_NS}path"):
-        token = LOGO_FILLS.get(el.get("fill", "").upper())
-        if token is None:
+        path = scale_path(el.get("d"), k)
+        fill_token = LOGO_FILLS.get(el.get("fill", "").upper())
+        stroke_token = LOGO_FILLS.get(el.get("stroke", "").upper())
+        if fill_token:
+            props = {"fill": col(fill_token)}
+        elif stroke_token:
+            # Stroke-only paths, such as the reflection in the a, keep their weight and caps.
+            props = {
+                "fill": None,
+                "stroke": col(stroke_token),
+                "strokeWeight": round(float(el.get("stroke-width", "1")) * k, 2),
+                "strokeCap": "round" if el.get("stroke-linecap") == "round" else "butt",
+            }
+        else:
             continue
-        S("node.create", {"type": "vector", "parent": box, "x": 0, "y": 0, "path": scale_path(el.get("d"), k),
-                          "select": False, "props": {"fill": col(token)}}, ref=False)
+        S("node.create", {"type": "vector", "parent": box, "x": 0, "y": 0, "path": path,
+                          "select": False, "props": props}, ref=False)
     return box
 
 
