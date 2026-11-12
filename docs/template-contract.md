@@ -89,12 +89,13 @@ A signed-out visitor starts their own login from the console, unless
 `adminOnly.loginUrl` is set. Then the console sends them to `loginUrl` with
 `next` set to the console page they opened (origin, path and query), and the
 console never starts a login of its own. For the Sweegly dev install, where
-login lives in the Sweegly app:
+login lives in the Sweegly app (see `hostinger-hosting.md` for the full
+`PUBLIC_CONFIG_JSON`):
 
 ```json
 "adminOnly": {
-  "productAppUrl": "https://dev.sweegly.co.uk/",
-  "loginUrl": "https://dev.sweegly.co.uk/login"
+  "productAppUrl": "https://appdev.sweegly.co.uk/",
+  "loginUrl": "https://appdev.sweegly.co.uk/login"
 }
 ```
 

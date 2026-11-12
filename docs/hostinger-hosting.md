@@ -52,6 +52,28 @@ This file is public assertion data. It must never contain passwords, API keys,
 database credentials, WorkOS secrets, invitation tokens, or user-specific
 session data.
 
+### Sweegly dev admin console
+
+The `sweegly-latte-dev` Environment (erme2/deploy) serves the admin console at
+`https://admindev.sweegly.co.uk`. Login lives in the Sweegly app, so the console
+sends signed-out visitors to the app's login page. Set `PUBLIC_CONFIG_JSON` to:
+
+```json
+{
+  "paneBaseUrl": "https://apidev.sweegly.co.uk",
+  "expectedApplicationId": "326f1263-800a-5db7-8e63-4489072f2668",
+  "expectedOrganizationId": "e97c54d0-6986-4b06-a955-cb11b63a96dd",
+  "expectedOrigin": "https://admindev.sweegly.co.uk",
+  "adminOnly": {
+    "productAppUrl": "https://appdev.sweegly.co.uk/",
+    "loginUrl": "https://appdev.sweegly.co.uk/login"
+  }
+}
+```
+
+`loginUrl` needs a Latte release that includes it (erme2/Latte#56). Deploy Latte
+rejects a `loginUrl` that is malformed or on the console's own origin.
+
 ## Release version
 
 The deploy (erme2/deploy) also writes `/latte-release.json` with the
