@@ -44,7 +44,7 @@ The design source is **`latte-cpanel.figcraft`**, made with [FigCraft](https://g
 | **Desktop** (1440×900) | Customers list, edit form and states (empty, loading, error), each in light (left) and dark (right) |
 | **Mobile** (390×844) | Customers list and edit form, light and dark |
 
-The logo (a latte cup, since latte means milk) is in `design/logo/latte-logo.svg` and in the shell: the sidebar on desktop, and the top bar on phone. The list has pagination controls, and the phone screens have a menu button (list) or back button (edit form).
+The new Latte logo (erme2/Latte#63) is in `design/logo/wordmark/`. The design still uses the earlier cup logo, `design/logo/latte-logo.svg`, in the shell: the sidebar on desktop, and the top bar on phone. The list has pagination controls, and the phone screens have a menu button (list) or back button (edit form).
 
 Colours are variables in the **Theme** collection with two modes, **Light** and **Dark**. To check a screen in the other theme, select it and switch its Theme mode. The font is Inter, Latte's stack in `src/index.css`.
 
