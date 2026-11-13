@@ -36,6 +36,12 @@ client creation, then injects its inferred service type into every page.
 Normal product work must not edit package authentication, session, tenant
 validation, or Pane client internals.
 
+The app shell's sign-in lifecycle (startup, invitation links, expired sessions,
+sign out and retry) lives in `src/auth/`: `lifecycle.mjs` holds the steps and is
+tested without React, and `useLatteAuthentication` wires it into `App.tsx`.
+Product pages and their state live under `src/product/`, one folder per feature
+(for example `src/product/organization/`).
+
 Route patterns use named whole-segment parameters such as
 `/connections/:connectionId`. Page context receives decoded values in
 `context.params`. Invalid encodings and unmatched paths render the product's
