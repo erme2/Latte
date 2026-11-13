@@ -33,6 +33,8 @@ session or starts a fresh login instead of resubmitting the consumed code.
 Invitation links are consumed only by Pane. Latte reads `invitation_token` from
 the initial URL, forwards it to `POST /api/v1/auth/login-intents`, and never
 persists it in runtime configuration, storage, or the post-login redirect URL.
+Tokens shorter than 32 or longer than 255 characters (Pane v1's `maxLength`)
+are rejected locally with the invalid-invitation message, without calling Pane.
 If Pane rejects the callback with one of its public invitation codes, Latte
 renders only a local message selected from `error.code`:
 `invitation_invalid`, `invitation_expired`, `invitation_revoked`,
