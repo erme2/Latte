@@ -49,7 +49,8 @@ export function invitationTokenFromSearch(search: string): InvitationTokenResult
     return { status: 'none' }
   }
 
-  if (token.length < 32 || token.length > 512) {
+  // Pane v1 rejects tokens longer than 255 characters (LoginIntentInput.invitation_token maxLength).
+  if (token.length < 32 || token.length > 255) {
     return {
       status: 'invalid',
       message: 'This invitation link is invalid. Ask an organization administrator to resend it.',

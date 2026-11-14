@@ -5,8 +5,29 @@ import {
   callbackRecoveryPath,
   createAuthService,
   invitationAcceptanceErrorCodes,
+  invitationTokenFromSearch,
   resolveInitialAuthentication,
 } from '../packages/latte-core/dist/index.js'
+
+const invalidInvitation = {
+  status: 'invalid',
+  message: 'This invitation link is invalid. Ask an organization administrator to resend it.',
+}
+const tokenOfLength = (length) => 'a'.repeat(length)
+
+assert.deepEqual(invitationTokenFromSearch(''), { status: 'none' })
+assert.deepEqual(invitationTokenFromSearch(`?invitation_token=${tokenOfLength(31)}`), invalidInvitation)
+assert.deepEqual(invitationTokenFromSearch(`?invitation_token=${tokenOfLength(32)}`), {
+  status: 'ready',
+  token: tokenOfLength(32),
+})
+// Pane v1 caps invitation_token at 255 characters (contracts/pane-v1.json).
+assert.deepEqual(invitationTokenFromSearch(`?invitation_token=${tokenOfLength(255)}`), {
+  status: 'ready',
+  token: tokenOfLength(255),
+})
+assert.deepEqual(invitationTokenFromSearch(`?invitation_token=${tokenOfLength(256)}`), invalidInvitation)
+assert.deepEqual(invitationTokenFromSearch(`?invitation_token=${tokenOfLength(512)}`), invalidInvitation)
 
 const applicationId = '01900000-0000-7000-8000-000000000001'
 const organizationId = '01900000-0000-7000-8000-000000000002'
