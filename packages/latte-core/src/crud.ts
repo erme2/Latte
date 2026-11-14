@@ -1,26 +1,15 @@
-import type { AxiosInstance, AxiosResponse } from 'axios'
+import type { AxiosInstance } from 'axios'
 import type {
   CollectionResponse,
   ItemResponse,
   LatteRuntimeConfig,
-  VersionedItemResponse,
 } from './types.js'
 import { rejectPaneAccessFailure } from './errors.js'
 import { createOrganizationRouter } from './organization.js'
+import { versionedItemResponse as versioned } from './versioned.js'
 
 export type PaneRowValue = string | number | boolean | null
 export type PaneRowValues = Record<string, PaneRowValue>
-
-function versioned<T>(response: AxiosResponse<ItemResponse<T>>): VersionedItemResponse<T> {
-  const headers = response.headers as unknown as Record<string, unknown>
-  const etag = headers.etag ?? headers.ETag
-
-  if (typeof etag !== 'string' || etag === '') {
-    throw new Error('Pane row response did not include the required ETag header.')
-  }
-
-  return { document: response.data, etag }
-}
 
 export function createRowService(pane: AxiosInstance, config: LatteRuntimeConfig) {
   const organization = createOrganizationRouter(config)

@@ -9,6 +9,7 @@ import type {
 } from './types.js'
 import { rejectPaneAccessFailure } from './errors.js'
 import { createOrganizationRouter } from './organization.js'
+import { versionedItemResponse as versioned } from './versioned.js'
 
 export type MembershipStatus = 'active' | 'suspended'
 
@@ -52,17 +53,6 @@ export type CreatedOrganizationInvitation = VersionedItemResponse<OrganizationIn
 
 type CreatedInvitationResponse = ItemResponse<OrganizationInvitationResource> & {
   meta: ItemResponse<OrganizationInvitationResource>['meta'] & { invitation_url: string }
-}
-
-function versioned<T>(response: AxiosResponse<ItemResponse<T>>): VersionedItemResponse<T> {
-  const headers = response.headers as unknown as Record<string, unknown>
-  const etag = headers.etag ?? headers.ETag
-
-  if (typeof etag !== 'string' || etag === '') {
-    throw new Error('Pane response did not include the required ETag header.')
-  }
-
-  return { document: response.data, etag }
 }
 
 function createdInvitation(

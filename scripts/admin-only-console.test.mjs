@@ -202,19 +202,19 @@ assert.deepEqual(await resolveInitialAuthentication('', authReturning(member), d
 
 // The app redirects before rendering and replaces history so Back can't
 // return to the console.
-const app = readFileSync('src/App.tsx', 'utf8')
-assert.match(app, /resolveInitialAuthentication\(\s*window\.location\.search,\s*runtime\.auth,\s*runtime\.config,\s*\)/)
-assert.match(app, /initial\.status === 'product_redirect'[\s\S]*window\.location\.replace\(initial\.url\)[\s\S]*return/)
+const lifecycle = readFileSync('src/auth/lifecycle.mjs', 'utf8')
+assert.match(lifecycle, /resolveInitialAuthentication\(\s*browser\.location\.search,\s*runtime\.auth,\s*runtime\.config,\s*\)/)
+assert.match(lifecycle, /initial\.status === 'product_redirect'[\s\S]*browser\.location\.replace\(initial\.url\)[\s\S]*return/)
 assert.ok(
-  app.indexOf("initial.status === 'product_redirect'") < app.indexOf('setSession(initial.session)'),
+  lifecycle.indexOf("initial.status === 'product_redirect'") < lifecycle.indexOf('session: initial.session'),
   'the admin-only redirect must happen before the session is stored and the console renders',
 )
 
 // Signed-out visitors on a loginUrl console are redirected, and the console never
 // starts its own login there: beginLogin is only called from beginSignIn.
-assert.match(app, /adminOnlyLoginUrl\(runtime\.config, window\.location\.href\)/)
-assert.match(app, /window\.location\.replace\(loginUrl\)/)
-assert.equal(app.match(/runtime\.auth\.beginLogin\(/g)?.length, 1, 'beginLogin is only called from beginSignIn')
+assert.match(lifecycle, /adminOnlyLoginUrl\(runtime\.config, browser\.location\.href\)/)
+assert.match(lifecycle, /browser\.location\.replace\(loginUrl\)/)
+assert.equal(lifecycle.match(/runtime\.auth\.beginLogin\(/g)?.length, 1, 'beginLogin is only called from beginSignIn')
 
 for (const doc of ['docs/template-contract.md', 'README.md']) {
   const text = readFileSync(doc, 'utf8')

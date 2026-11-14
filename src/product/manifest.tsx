@@ -1,5 +1,6 @@
 import { defineLatteProduct } from './contract'
-import { Connection, Dashboard, Forbidden, NotFound, OrganizationAdministration } from './pages'
+import { OrganizationAdministration } from './organization/OrganizationAdministration'
+import { Connection, Dashboard, Forbidden, NotFound } from './pages'
 import { createServices, type ProductServices } from './services'
 
 export const product = defineLatteProduct<ProductServices>({
