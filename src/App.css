@@ -80,6 +80,21 @@
   cursor: pointer;
 }
 
+.nav-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.topbar .nav-child {
+  font-weight: 400;
+}
+
+.shell-notice {
+  margin: 16px 0 0;
+  color: var(--accent-strong);
+}
+
 .eyebrow {
   margin: 0 0 6px;
   color: var(--muted);

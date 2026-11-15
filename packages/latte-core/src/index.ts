@@ -39,6 +39,34 @@ export {
 } from './errors.js'
 export type { PaneAccessErrorCode, PaneAccessFailure } from './errors.js'
 export { assertBrowserOrigin, loadLatteRuntimeConfig, parseLatteRuntimeConfig } from './config.js'
+export {
+  buildMapsShell,
+  createMapsService,
+  isMapName,
+  mapFunctionKeys,
+  mapsBrandSettingKeys,
+  mapsRecordPath,
+} from './maps.js'
+export type {
+  MapField,
+  MapFieldUi,
+  MapFieldValidation,
+  MapFunction,
+  MapFunctionKey,
+  MapMenuItem,
+  MapMenuTarget,
+  MapPublicSetting,
+  MapsAttributes,
+  MapsResource,
+  MapsService,
+  MapsShell,
+  MapsShellBrand,
+  MapsShellMenuItem,
+  MapsShellOptions,
+  MapTableSummary,
+  MapTableUi,
+  TableMapResource,
+} from './maps.js'
 export { createRowService } from './crud.js'
 export type { PaneRowValue, PaneRowValues } from './crud.js'
 export { adminOnlyLoginUrl, adminOnlyRedirectUrl, assertLatteSession, hasOrganizationRole } from './session.js'

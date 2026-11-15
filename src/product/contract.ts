@@ -1,11 +1,13 @@
 import type { AxiosInstance } from 'axios'
 import {
   createAuthService,
+  createMapsService,
   createPaneClient,
   createOrganizationRouter,
   createRowService,
   type LatteRuntimeConfig,
   type LatteSession,
+  type MapFunctionKey,
   type OrganizationRole,
 } from '@erme2/latte'
 import type { ComponentType } from 'react'
@@ -18,6 +20,7 @@ import {
 export type PlatformContext = {
   config: LatteRuntimeConfig
   pane: AxiosInstance
+  maps: ReturnType<typeof createMapsService>
   rows: ReturnType<typeof createRowService>
   organization: ReturnType<typeof createOrganizationRouter>
 }
@@ -37,8 +40,11 @@ export type ProductRoute<Services extends object> = {
   path: `/${string}`
   component: ComponentType<ProductPageProps<Services>>
   roles?: readonly OrganizationRole[]
+  // The maps function this page belongs to: hidden while the install has it switched off.
+  function?: MapFunctionKey
 }
 
+// Always-on entries shown next to the maps menu, whatever the install switched off.
 export type NavigationItem = {
   id: string
   label: string
@@ -70,6 +76,7 @@ export function createLatteRuntime<Services extends object>(
   const platform = {
     config,
     pane,
+    maps: createMapsService(pane, config),
     organization: createOrganizationRouter(config),
     rows: createRowService(pane, config),
   }
@@ -96,6 +103,15 @@ export function defineLatteProduct<Services extends object>(
     routePaths.add(route.path)
   }
 
+  const functionRoutes = new Set<string>()
+  for (const route of product.routes) {
+    if (!route.function || route.path.includes('/:')) continue
+    if (functionRoutes.has(route.function)) {
+      throw new Error(`More than one route opens the ${route.function} function.`)
+    }
+    functionRoutes.add(route.function)
+  }
+
   if (!product.routes.some((route) => matchRoutePattern(route.path, product.defaultPath))) {
     throw new Error('The product defaultPath must match a declared route.')
   }
@@ -106,8 +122,12 @@ export function defineLatteProduct<Services extends object>(
       throw new Error(`Duplicate navigation item: ${item.id}.`)
     }
     navigationIds.add(item.id)
-    if (!product.routes.some((route) => matchRoutePattern(route.path, item.path))) {
+    const route = product.routes.find((candidate) => matchRoutePattern(candidate.path, item.path))
+    if (!route) {
       throw new Error(`Navigation item ${item.id} points to an undeclared route.`)
+    }
+    if (route.function) {
+      throw new Error(`Navigation item ${item.id} is always on, so it cannot open the switchable ${route.function} function.`)
     }
   }
 
