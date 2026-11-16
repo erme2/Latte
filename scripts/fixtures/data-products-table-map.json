@@ -1,0 +1,25 @@
+{
+  "data": {
+    "type": "table_map",
+    "attributes": {
+      "source": "app",
+      "table": "products",
+      "description": "Things for sale",
+      "system": false,
+      "version": 2,
+      "ui": { "label": "Products", "list": { "columns": ["name", "price", "secret_note", "missing"], "default_sort": "-created_at" } },
+      "fields": [
+        { "name": "id", "type": "number", "description": null, "format": null, "primary": true, "nullable": false, "sortable": true, "computed": false, "default": null, "validations": [], "ui": { "label": "ID" } },
+        { "name": "name", "type": "string", "description": "Shown on the shelf label", "format": null, "primary": false, "nullable": false, "sortable": true, "computed": false, "default": null, "validations": [{ "rule": "max", "value": 12 }], "ui": { "label": "Product name", "help": "Up to 12 characters" } },
+        { "name": "price", "type": "number", "description": null, "format": null, "primary": false, "nullable": true, "sortable": true, "computed": false, "default": null, "validations": [{ "rule": "min", "value": 0, "message": "Prices can't be negative." }], "ui": null },
+        { "name": "contact", "type": "string", "description": null, "format": "email", "primary": false, "nullable": true, "sortable": false, "computed": false, "default": null, "validations": [{ "rule": "email" }], "ui": null },
+        { "name": "notes", "type": "text", "description": null, "format": null, "primary": false, "nullable": true, "sortable": false, "computed": false, "default": null, "validations": [], "ui": { "widget": "textarea" } },
+        { "name": "available", "type": "boolean", "description": null, "format": null, "primary": false, "nullable": false, "sortable": false, "computed": false, "default": true, "validations": [], "ui": null },
+        { "name": "tags", "type": "array", "description": null, "format": null, "primary": false, "nullable": true, "sortable": false, "computed": false, "default": null, "validations": [], "ui": null },
+        { "name": "secret_note", "type": "string", "description": null, "format": null, "primary": false, "nullable": true, "sortable": false, "computed": false, "default": null, "validations": [], "ui": { "hidden": true } },
+        { "name": "created_at", "type": "date", "description": null, "format": null, "primary": false, "nullable": false, "sortable": true, "computed": true, "default": null, "validations": [], "ui": { "label": "Created" } }
+      ]
+    }
+  },
+  "meta": { "request_id": "01900000-0000-7000-8000-000000000201" }
+}

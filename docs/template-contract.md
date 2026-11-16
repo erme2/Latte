@@ -70,6 +70,32 @@ names. Hiding is a usability boundary: Pane still decides what each caller may
 read and write. `scripts/fixtures/maps-install-*.json` holds two installs used
 by the tests.
 
+### Record views
+
+With `records` on, a table item opens three routes from the manifest:
+`/records/:source/:table` lists rows (`src/product/records/RecordList.tsx`),
+`/records/:source/:table/new` creates one and `/records/:source/:table/:rowKey`
+edits or deletes one (`RecordEditor.tsx`). The `new` route is declared before
+the edit route so it wins. Both read the table map, then talk to Pane's `/data`
+routes (Pane#156) through `platform.data` (`createDataService`), which checks
+map names, row keys and the sort before any request and sends the row's ETag in
+`If-Match` on update and delete.
+
+What the screens show comes from the map's `ui` part, through helpers in
+`@erme2/latte`: `recordListColumns` (`ui.list.columns`, else the first five
+visible fields), `recordListSort` (`ui.list.default_sort` when that field is
+`sortable`), `recordFormFields` (no computed fields, and no primary key on
+edit), `recordFieldWidget` (a known `ui.widget`, else one for the field type),
+and `recordFieldLabel`. Fields with `ui.hidden` and password fields are never
+listed. The map's `min`, `max` and `email` hints are checked in the browser;
+Pane still validates every write. `recordWriteFailure` turns Pane's answers
+into messages: `422 validation_failed` with `details.fields` marks each field,
+`403` says the change isn't allowed, `404` says the record is gone and `412`
+asks to reload. Filters wait for named queries (Pane#160), and the table maps
+don't expose the access policy yet, so write actions show for everyone and a
+denied write is reported when Pane refuses it. `scripts/fixtures/data-products-*.json`
+holds the contract fixtures the tests use.
+
 Route patterns use named whole-segment parameters such as
 `/connections/:connectionId`. Page context receives decoded values in
 `context.params`. Invalid encodings and unmatched paths render the product's

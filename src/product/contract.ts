@@ -1,6 +1,7 @@
 import type { AxiosInstance } from 'axios'
 import {
   createAuthService,
+  createDataService,
   createMapsService,
   createPaneClient,
   createOrganizationRouter,
@@ -21,6 +22,7 @@ export type PlatformContext = {
   config: LatteRuntimeConfig
   pane: AxiosInstance
   maps: ReturnType<typeof createMapsService>
+  data: ReturnType<typeof createDataService>
   rows: ReturnType<typeof createRowService>
   organization: ReturnType<typeof createOrganizationRouter>
 }
@@ -77,6 +79,7 @@ export function createLatteRuntime<Services extends object>(
     config,
     pane,
     maps: createMapsService(pane, config),
+    data: createDataService(pane, config),
     organization: createOrganizationRouter(config),
     rows: createRowService(pane, config),
   }
