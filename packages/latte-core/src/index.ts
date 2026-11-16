@@ -67,6 +67,30 @@ export type {
   MapTableUi,
   TableMapResource,
 } from './maps.js'
+export {
+  createDataService,
+  formatRecordValue,
+  parseRecordInput,
+  recordFieldLabel,
+  recordFieldWidget,
+  recordFormFields,
+  recordInputValue,
+  recordListColumns,
+  recordListSort,
+  recordValidationMessages,
+  recordWriteFailure,
+} from './data.js'
+export type {
+  DataListParams,
+  DataRowResource,
+  DataRowValues,
+  DataService,
+  ParsedRecordInput,
+  RecordFormMode,
+  RecordWidget,
+  RecordWriteFailure,
+  TableMap,
+} from './data.js'
 export { createRowService } from './crud.js'
 export type { PaneRowValue, PaneRowValues } from './crud.js'
 export { adminOnlyLoginUrl, adminOnlyRedirectUrl, assertLatteSession, hasOrganizationRole } from './session.js'

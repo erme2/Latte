@@ -1,0 +1,7 @@
+{
+  "validation_failed": { "error": { "code": "validation_failed", "message": "The request could not be processed.", "details": { "fields": { "name": ["required"], "price": "must be a number", "ignored": [42] } }, "request_id": "01900000-0000-7000-8000-000000000203" } },
+  "permission_denied": { "error": { "code": "permission_denied", "message": "Permission denied.", "request_id": "01900000-0000-7000-8000-000000000204" } },
+  "resource_not_found": { "error": { "code": "resource_not_found", "message": "Not found.", "request_id": "01900000-0000-7000-8000-000000000205" } },
+  "version_conflict": { "error": { "code": "version_conflict", "message": "Version conflict.", "request_id": "01900000-0000-7000-8000-000000000206" } },
+  "membership_required": { "error": { "code": "membership_required", "message": "Membership required.", "request_id": "01900000-0000-7000-8000-000000000207" } }
+}

@@ -59,6 +59,7 @@ export default function App<Services extends object>({ runtime, product }: Props
     config: runtime.config,
     pane: runtime.pane,
     maps: runtime.maps,
+    data: runtime.data,
     organization: runtime.organization,
     rows: runtime.rows,
     services: runtime.services,
