@@ -97,7 +97,8 @@ function RecordForm({ data, table, row }: { data: DataService; table: TableMap; 
       const input = inputs[field.name]
       const untouched = input === saved[field.name]
       if (mode === 'edit' && untouched) continue
-      if (mode === 'create' && untouched && (input === '' || input === false)) continue
+      // An unchecked checkbox is a real choice (false), so only blank text is left out on create.
+      if (mode === 'create' && untouched && input === '') continue
       if (field.type === 'password' && input === '') continue
       const parsed = parseRecordInput(field, input)
       if (!parsed.ok) {
@@ -200,6 +201,7 @@ function RecordForm({ data, table, row }: { data: DataService; table: TableMap; 
             value={inputs[field.name]}
             errors={fieldErrors[field.name] ?? []}
             editing={mode === 'edit'}
+            disabled={busy}
             onChange={(value) => change(field.name, value)}
           />
         ))}
@@ -220,10 +222,11 @@ type RecordInputProps = {
   value: string | boolean | undefined
   errors: string[]
   editing: boolean
+  disabled: boolean
   onChange(value: string | boolean): void
 }
 
-function RecordInput({ field, value, errors, editing, onChange }: RecordInputProps) {
+function RecordInput({ field, value, errors, editing, disabled, onChange }: RecordInputProps) {
   const id = `field-${field.name}`
   const widget = recordFieldWidget(field)
   const help = field.ui?.help ?? field.description
@@ -231,6 +234,8 @@ function RecordInput({ field, value, errors, editing, onChange }: RecordInputPro
   const common = {
     id,
     name: field.name,
+    // Locked while a save is pending, so the saved response can't overwrite a newer edit.
+    disabled,
     'aria-invalid': errors.length > 0 ? true : undefined,
     'aria-describedby': describedBy,
   }
