@@ -42,6 +42,34 @@ tested without React, and `useLatteAuthentication` wires it into `App.tsx`.
 Product pages and their state live under `src/product/`, one folder per feature
 (for example `src/product/organization/`).
 
+## Shell from Pane maps
+
+One Latte build serves every install: the menu, the switchable functions and
+the branding come from Pane's maps (`GET /organizations/{organization_id}/maps`,
+Pane#154) instead of code. After sign-in, `src/shell/useMapsShell.ts` loads them
+through `platform.maps` (`createMapsService`) and `buildMapsShell` from
+`@erme2/latte` turns them into:
+
+- the menu, sorted by `position`, with one level of nesting. A `function` item
+  opens the route tagged with that function; a `table` item opens
+  `/records/{source}/{table}`. Items are left out when their function is off,
+  when the app has no route for it, when `records` is off (table items), or
+  when the caller can't see the table; children of a hidden item go with it;
+- the set of functions switched on (`records`, `members`, `dashboard`). A route
+  with `function: '<key>'` in the manifest renders `notFoundPage` while that
+  function is off, and before the maps have loaded or when they fail;
+- the brand, from the public settings `brand_name`, `brand_tagline` and
+  `brand_logo_url` (an HTTPS URL or a same-origin path). Missing values fall
+  back to the manifest's `brand` and `/latte-logo.svg`.
+
+The manifest's `navigation` lists only always-on entries, such as the maps,
+menu and settings editors: they show next to the maps menu whatever the install
+switched off, so they can't point at a function route. Pages read table maps
+with `context.maps.getTableMap(source, table)`, which accepts only stable map
+names. Hiding is a usability boundary: Pane still decides what each caller may
+read and write. `scripts/fixtures/maps-install-*.json` holds two installs used
+by the tests.
+
 Route patterns use named whole-segment parameters such as
 `/connections/:connectionId`. Page context receives decoded values in
 `context.params`. Invalid encodings and unmatched paths render the product's

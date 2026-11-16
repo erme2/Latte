@@ -1,0 +1,31 @@
+{
+  "data": {
+    "type": "maps",
+    "attributes": {
+      "version": 4,
+      "menu": [
+        { "key": "home", "label": "Home", "icon": "home", "target": { "type": "function", "function": "dashboard" }, "parent": null, "position": 0 },
+        { "key": "catalogue", "label": "Catalogue", "icon": "box", "target": { "type": "table", "source": "app", "table": "products" }, "parent": null, "position": 1 },
+        { "key": "categories", "label": "Categories", "icon": null, "target": { "type": "table", "source": "app", "table": "categories" }, "parent": "catalogue", "position": 0 },
+        { "key": "team", "label": "Team", "icon": "users", "target": { "type": "function", "function": "members" }, "parent": null, "position": 2 },
+        { "key": "audit", "label": "Audit trail", "icon": null, "target": { "type": "table", "source": "pane", "table": "audit_events" }, "parent": "team", "position": 0 }
+      ],
+      "functions": [
+        { "key": "records", "enabled": true },
+        { "key": "members", "enabled": true },
+        { "key": "dashboard", "enabled": true }
+      ],
+      "settings": [
+        { "key": "brand_name", "type": "text", "value": "Sweegly" },
+        { "key": "brand_tagline", "type": "text", "value": "Your shop, your way" },
+        { "key": "brand_logo_url", "type": "image", "value": "https://cdn.sweegly.test/logo.svg" }
+      ],
+      "tables": [
+        { "source": "app", "table": "products", "description": "Things for sale", "system": false, "version": 2, "ui": { "label": "Products", "list": { "columns": ["name", "price"], "default_sort": "-created_at" } } },
+        { "source": "app", "table": "categories", "description": null, "system": false, "version": 1, "ui": null },
+        { "source": "pane", "table": "audit_events", "description": "Pane audit history", "system": true, "version": 1, "ui": null }
+      ]
+    }
+  },
+  "meta": { "request_id": "01900000-0000-7000-8000-000000000101" }
+}

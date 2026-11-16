@@ -1,0 +1,24 @@
+{
+  "data": {
+    "type": "maps",
+    "attributes": {
+      "version": 1,
+      "menu": [
+        { "key": "orders", "label": "Orders", "icon": "receipt", "target": { "type": "table", "source": "app", "table": "orders" }, "parent": null, "position": 0 },
+        { "key": "overview", "label": "Overview", "icon": null, "target": { "type": "function", "function": "dashboard" }, "parent": null, "position": 1 },
+        { "key": "staff", "label": "Staff", "icon": null, "target": { "type": "function", "function": "members" }, "parent": null, "position": 2 },
+        { "key": "recipes", "label": "Recipes", "icon": null, "target": { "type": "table", "source": "app", "table": "recipes" }, "parent": "orders", "position": 0 }
+      ],
+      "functions": [
+        { "key": "records", "enabled": true },
+        { "key": "members", "enabled": false },
+        { "key": "dashboard", "enabled": false }
+      ],
+      "settings": [],
+      "tables": [
+        { "source": "app", "table": "orders", "description": "Customer orders", "system": false, "version": 3, "ui": { "label": "Orders" } }
+      ]
+    }
+  },
+  "meta": { "request_id": "01900000-0000-7000-8000-000000000201" }
+}

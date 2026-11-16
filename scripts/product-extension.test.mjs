@@ -63,7 +63,7 @@ const administrationPage = readFileSync('src/product/organization/OrganizationAd
 assert.match(main, /createLatteRuntime\(config, product\)/)
 assert.doesNotMatch(app, /createProductServices|createLatteRuntime/)
 assert.match(app, /product\.notFoundPage/)
-assert.match(app, /<img className="brand-logo" src="\/latte-logo\.svg" alt=\{product\.brand\.name\}/)
+assert.match(app, /<img className="brand-logo" src=\{brand\.logoUrl \?\? '\/latte-logo\.svg'\} alt=\{brandName\}/)
 assert.ok(existsSync('public/latte-logo.svg'), 'the shell logo is served from public/')
 assert.doesNotMatch(lifecycle, /beginLogin\(redirectUrl\(browser\.location\.pathname/)
 assert.match(lifecycle, /beginLogin\(redirectUrl\(defaultPath/)
