@@ -54,10 +54,16 @@ export function matchRoutePattern(pattern, pathname) {
   return params
 }
 
-export function resolveProductRoute(routes, pathname, role) {
+// A route tagged with a maps function only exists while the install has that
+// function switched on; without the maps (enabledFunctions missing) it stays hidden.
+export function resolveProductRoute(routes, pathname, role, enabledFunctions) {
   for (const route of routes) {
     const params = matchRoutePattern(route.path, pathname)
     if (params === null) continue
+
+    if (route.function && !enabledFunctions?.has(route.function)) {
+      return { status: 'not_found' }
+    }
 
     if (route.roles && !route.roles.includes(role)) {
       return { status: 'forbidden', route, params }
@@ -67,6 +73,18 @@ export function resolveProductRoute(routes, pathname, role) {
   }
 
   return { status: 'not_found' }
+}
+
+// The page each function opens from a maps menu item: its tagged route, when that
+// route has no parameters (the records route is reached through table items instead).
+export function functionPathsFromRoutes(routes) {
+  const paths = {}
+  for (const route of routes) {
+    if (route.function && !route.path.includes('/:')) {
+      paths[route.function] = route.path
+    }
+  }
+  return paths
 }
 
 export function createProductServices(factory, platform) {

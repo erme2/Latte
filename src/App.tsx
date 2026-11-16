@@ -1,7 +1,9 @@
+import { useMemo } from 'react'
 import { hasOrganizationRole } from '@erme2/latte'
 import { useLatteAuthentication } from './auth/useLatteAuthentication'
 import type { LatteProduct, LatteRuntime, ProductContext } from './product/contract'
-import { resolveProductRoute } from './product/runtime.mjs'
+import { functionPathsFromRoutes, resolveProductRoute } from './product/runtime.mjs'
+import { useMapsShell } from './shell/useMapsShell'
 import './App.css'
 
 type Props<Services extends object> = {
@@ -17,6 +19,11 @@ export default function App<Services extends object>({ runtime, product }: Props
     logout,
     retry,
   } = useLatteAuthentication(runtime, product.defaultPath)
+  const shellOptions = useMemo(
+    () => ({ functionPaths: functionPathsFromRoutes(product.routes) }),
+    [product.routes],
+  )
+  const maps = useMapsShell(runtime.maps, shellOptions, authState === 'authenticated' && session !== null)
 
   if (authState !== 'authenticated' || !session) {
     return (
@@ -45,11 +52,13 @@ export default function App<Services extends object>({ runtime, product }: Props
     product.routes,
     window.location.pathname,
     session.data.membership.attributes.role,
+    maps.status === 'ready' ? maps.shell.enabledFunctions : null,
   )
   const params = resolution.status === 'not_found' ? {} : resolution.params
   const context: ProductContext<Services> = {
     config: runtime.config,
     pane: runtime.pane,
+    maps: runtime.maps,
     organization: runtime.organization,
     rows: runtime.rows,
     services: runtime.services,
@@ -61,17 +70,31 @@ export default function App<Services extends object>({ runtime, product }: Props
     : resolution.status === 'forbidden'
       ? product.forbiddenPage
       : product.notFoundPage
+  const brand = maps.status === 'ready' ? maps.shell.brand : {}
+  const brandName = brand.name ?? product.brand.name
 
   return (
     <main className="dashboard">
       <header className="topbar">
         <div>
-          <p className="eyebrow">{product.brand.tagline}</p>
+          <p className="eyebrow">{brand.tagline ?? product.brand.tagline}</p>
           <h1>
-            <img className="brand-logo" src="/latte-logo.svg" alt={product.brand.name} width="168" height="67" />
+            <img className="brand-logo" src={brand.logoUrl ?? '/latte-logo.svg'} alt={brandName} width="168" height="67" />
           </h1>
         </div>
         <nav aria-label="Primary navigation">
+          {maps.status === 'ready'
+            ? maps.shell.menu.map((item) => (
+              <span className="nav-group" key={item.key} data-icon={item.icon ?? undefined}>
+                <a href={item.path}>{item.label}</a>
+                {item.children.map((child) => (
+                  <a className="nav-child" href={child.path} key={child.key} data-icon={child.icon ?? undefined}>
+                    {child.label}
+                  </a>
+                ))}
+              </span>
+            ))
+            : null}
           {product.navigation
             .filter((item) => !item.roles || hasOrganizationRole(session, item.roles))
             .map((item) => (
@@ -82,7 +105,12 @@ export default function App<Services extends object>({ runtime, product }: Props
           </button>
         </nav>
       </header>
-      {Page ? <Page context={context} /> : <h2>Page not found</h2>}
+      {maps.status === 'error'
+        ? <p className="shell-notice" role="alert">The menu could not be loaded from Pane. Reload the page to try again.</p>
+        : null}
+      {maps.status === 'loading'
+        ? <p aria-live="polite">Loading…</p>
+        : Page ? <Page context={context} /> : <h2>Page not found</h2>}
     </main>
   )
 }

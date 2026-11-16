@@ -2,8 +2,13 @@
 
 Headless, versioned Pane integration for applications created from the Latte
 starter. It owns configuration validation, the Pane HTTP client, authentication
-and session invariants, role checks, and generic row CRUD. It intentionally
-contains no application routes, navigation, pages, branding, or styling.
+and session invariants, role checks, generic row CRUD, and reading Pane's
+maps. It intentionally contains no application routes, pages, or styling.
+
+`createMapsService(pane, config)` reads the install's maps and table maps with
+their ETags. `buildMapsShell(maps, { functionPaths })` turns the maps into the
+data an app shell renders: the menu, the switchable functions that are on, and
+the branding settings. The app decides how to draw them.
 
 Use `createOrganizationRouter(config)` for every organization-scoped Pane path;
 callers provide resource segments but cannot provide an organization ID. Use
