@@ -207,22 +207,25 @@ require it in `If-Match`. No page in the starter uses it yet. Pane's API now mar
 belonging to external sources, which are deferred, so this service is transitional (see
 differences below).
 
-### Connections, schema discovery and CRUD screens (Target, not implemented)
+### Shell, connections, schema discovery and CRUD screens
 
-Latte has only placeholders today: the `Connection` page in `src/product/pages.tsx`, the
+The shell is current. Latte builds its menu, enabled functions and branding from Pane's maps
+bootstrap, `GET /organizations/{organization}/maps` (Pane#154, closed), in Latte#69, now on `main`.
+
+Connections, schema discovery and record screens are Target, not implemented. Latte has only
+placeholders for connections: the `Connection` page in `src/product/pages.tsx`, the
 `/connections/:connectionId` route in `src/product/manifest.tsx`, and `connections.list()` in
 `src/product/services.ts`, which no page calls. There is no UI for switching connections, browsing
 tables, columns, keys or relationships, or editing rows.
 
-The intended design, from the Pane maps decision:
+The intended design for records, from the Pane maps decision:
 
-- Latte builds its shell (menu, enabled functions, branding) from Pane's maps bootstrap,
-  `GET /organizations/{organization}/maps` (Pane#154, closed), in Latte#69.
 - List and edit views for records come from each map's `ui` part, through
   `GET /organizations/{organization}/maps/{source}/{table}`, in Latte#70.
 - Row CRUD moves to Pane's `/organizations/{organization}/data/{source}/tables/{table}/rows`
   family, addressed by stable names from the maps, with Pane enforcing each table's access policy
-  and row conditions. Reusable membership-owned CRUD pieces are Latte#33.
+  and row conditions. The earlier reusable membership-owned CRUD plan (Latte#33) is superseded by
+  Latte#70 with user-to-data checks in Pane#156.
 - Connection, catalog, description and grant administration was Latte#32 (closed). None of that UI
   is on `main`; where it fits next to the maps model is open.
 
@@ -240,16 +243,16 @@ row ownership.
 - Destructive membership actions are limited in the UI: the last active administrator can't be
   demoted or suspended, and only pending invitations can be revoked. Pane enforces the same rules.
 - **Open:** there is no confirmation step yet for suspend, revoke or (future) row delete. Before
-  row delete ships, the CRUD work (Latte#33, Latte#70) has to decide on confirmation and undo
+  row delete ships, the CRUD work (Latte#70) has to decide on confirmation and undo
   behaviour. Pane soft-deletes rows.
 
 ## Current and target: known differences
 
 | Area | Current | Target |
 | --- | --- | --- |
-| Shell, menu and pages | Hand-written in `src/product/manifest.tsx` | Built from Pane maps (Latte#69) |
+| Shell, menu and pages | Built from Pane maps (Latte#69, on `main`) | Unchanged |
 | Record screens | None | List and edit views from the maps' `ui` part (Latte#70) |
-| Row access | `createRowService` on `/connections/{id}/tables/{id}/rows`, unused | `/data/{source}/tables/{table}/rows` by stable name (Latte#33, Latte#70) |
+| Row access | `createRowService` on `/connections/{id}/tables/{id}/rows`, unused | `/data/{source}/tables/{table}/rows` by stable name (Latte#70, Pane#156) |
 | Connections | Placeholder route, page and unused `connections.list()` | **Open**, see Latte#32 (closed) |
 | Burro console | Not present | Separate application created from Latte (Latte#34 to Latte#36) |
 | Navigation | Full page loads through `<a href>` | **Open**: no decision on client-side navigation |
