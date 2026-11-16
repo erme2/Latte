@@ -25,6 +25,11 @@ pages while upgrading the package to receive shared authentication, Pane API,
 configuration, authorization-state, and CRUD fixes. See the
 [template and extension contract](docs/template-contract.md).
 
+To find where a change belongs and which contracts it must keep, read the
+[Latte architecture](docs/architecture.md): code map, sign-in and data flows,
+trust boundaries, current versus target design, and a checklist before making
+changes.
+
 ## Setup
 
 Create a local env file for running Latte outside Docker:
