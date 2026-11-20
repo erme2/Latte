@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { hasUserRole } from '@erme2/latte'
+import { hasUserRole, mapsRecordPath } from '@erme2/latte'
 import { useLatteAuthentication } from './auth/useLatteAuthentication'
 import type { LatteProduct, LatteRuntime, ProductContext } from './product/contract'
 import { functionPathsFromRoutes, resolveProductRoute } from './product/runtime.mjs'
@@ -95,6 +95,15 @@ export default function App<Services extends object>({ runtime, product }: Props
                 ))}
               </span>
             ))
+            : null}
+          {maps.status === 'ready' && maps.shell.enabledFunctions.has('records') && (product.recordMenu ?? []).length > 0
+            ? (
+              <span className="nav-group" aria-label="Records" role="group">
+                {(product.recordMenu ?? []).map((item) => (
+                  <a className="nav-child" href={mapsRecordPath(item.source, item.table)} key={item.id}>{item.label}</a>
+                ))}
+              </span>
+            )
             : null}
           {product.navigation
             .filter((item) => !item.roles || hasUserRole(session, item.roles))

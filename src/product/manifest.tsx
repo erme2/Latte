@@ -56,6 +56,16 @@ export const product = defineLatteProduct<ProductServices>({
   // The menu comes from the install's maps. List here only the always-on
   // entries, such as the maps, menu and settings editors.
   navigation: [],
+  // Fixed menu for the Story/Action/Mapper CRUD route: system tables, maps and the
+  // Sweegly data tables. The maps-driven menu replaces it later (Latte#71, #72).
+  recordMenu: [
+    { id: 'maps-sources', label: 'Map sources', source: 'install', table: 'maps_sources' },
+    { id: 'maps-tables', label: 'Map tables', source: 'install', table: 'maps_tables' },
+    { id: 'maps-fields', label: 'Map fields', source: 'install', table: 'maps_fields' },
+    { id: 'maps-versions', label: 'Map versions', source: 'install', table: 'maps_versions' },
+    { id: 'lists', label: 'Lists', source: 'install', table: 'lists' },
+    { id: 'products', label: 'Products', source: 'install', table: 'products' },
+  ],
   forbiddenPage: Forbidden,
   notFoundPage: NotFound,
 })
