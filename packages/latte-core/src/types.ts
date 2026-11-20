@@ -5,6 +5,11 @@ export const organizationRoles = [
 
 export type OrganizationRole = (typeof organizationRoles)[number]
 
+/** Pane's user role: admins use the console and the product app; users use the product app. */
+export const userRoles = ['admin', 'user'] as const
+
+export type UserRole = (typeof userRoles)[number]
+
 export type LatteAdminOnlyConfig = {
   productAppUrl: string
   loginUrl?: string
@@ -27,7 +32,7 @@ export type Resource<TType extends string, TAttributes> = {
 export type LatteSession = {
   data: {
     mode: 'latte'
-    user: Resource<'user', { email: string; name: string }>
+    user: Resource<'user', { email: string; name: string; role: UserRole }>
     application: Resource<
       'application',
       {
@@ -36,26 +41,6 @@ export type LatteSession = {
         trusted_origin: string
         redirect_uris: string[]
         status: 'active' | 'disabled'
-        created_at: string
-        updated_at: string
-      }
-    >
-    organization: Resource<
-      'organization',
-      {
-        name: string
-        slug: string
-        status: 'active' | 'suspended' | 'closed'
-        database_limit: number
-        created_at: string
-        updated_at: string
-      }
-    >
-    membership: Resource<
-      'membership',
-      {
-        role: OrganizationRole
-        status: 'active' | 'suspended'
         created_at: string
         updated_at: string
       }

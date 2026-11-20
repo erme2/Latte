@@ -12,32 +12,32 @@ const routes = [
   {
     id: 'connection',
     path: '/connections/:connectionId',
-    roles: ['organization_administrator'],
+    roles: ['admin'],
   },
   { id: 'row', path: '/tables/:tableId/rows/:rowKey' },
 ]
 
-assert.deepEqual(resolveProductRoute(routes, '/dashboard', 'organization_user'), {
+assert.deepEqual(resolveProductRoute(routes, '/dashboard', 'user'), {
   status: 'matched',
   route: routes[0],
   params: {},
 })
 assert.deepEqual(
-  resolveProductRoute(routes, '/connections/connection%20one', 'organization_administrator'),
+  resolveProductRoute(routes, '/connections/connection%20one', 'admin'),
   { status: 'matched', route: routes[1], params: { connectionId: 'connection one' } },
 )
 assert.deepEqual(
-  resolveProductRoute(routes, '/tables/table-1/rows/row%2Fkey', 'organization_user'),
+  resolveProductRoute(routes, '/tables/table-1/rows/row%2Fkey', 'user'),
   { status: 'matched', route: routes[2], params: { tableId: 'table-1', rowKey: 'row/key' } },
 )
 assert.equal(
-  resolveProductRoute(routes, '/connections/connection-1', 'organization_user').status,
+  resolveProductRoute(routes, '/connections/connection-1', 'user').status,
   'forbidden',
 )
-assert.deepEqual(resolveProductRoute(routes, '/missing', 'organization_user'), {
+assert.deepEqual(resolveProductRoute(routes, '/missing', 'user'), {
   status: 'not_found',
 })
-assert.deepEqual(resolveProductRoute(routes, '/connections/%ZZ', 'organization_administrator'), {
+assert.deepEqual(resolveProductRoute(routes, '/connections/%ZZ', 'admin'), {
   status: 'not_found',
 })
 assert.deepEqual(matchRoutePattern('/', '/'), {})
@@ -74,4 +74,4 @@ assert.match(administrationPage, /copyState === 'copied' \? 'Copied' : 'Copy'/)
 
 const manifest = readFileSync('src/product/manifest.tsx', 'utf8')
 assert.match(manifest, /path: '\/organization'/)
-assert.match(manifest, /roles: \['organization_administrator'\]/)
+assert.match(manifest, /roles: \['admin'\]/)

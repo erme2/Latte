@@ -122,7 +122,7 @@ const session = {
       id: 'm',
       type: 'membership',
       attributes: {
-        role: 'organization_user',
+        role: 'user',
         status: 'active',
         created_at: '2026-07-22T00:00:00Z',
         updated_at: '2026-07-22T00:00:00Z',
@@ -134,8 +134,8 @@ const session = {
 
 assert.equal(assertLatteSession(session, config), session)
 assert.throws(
-  () => assertLatteSession({ ...session, data: { ...session.data, organization: { ...session.data.organization, id: applicationId } } }, config),
-  /organization does not match/,
+  () => assertLatteSession({ ...session, data: { ...session.data, application: { ...session.data.application, id: organizationId } } }, config),
+  /application does not match/,
 )
 
 assert.deepEqual(await attemptLoginRedirect(async () => {}), { status: 'redirecting' })
@@ -158,7 +158,7 @@ assert.match(manifest, /defineLatteProduct/)
 assert.match(contract, /createServices\(platform: PlatformContext\): Services/)
 assert.match(contract, /routes: readonly ProductRoute<Services>\[\]/)
 assert.match(contract, /navigation: readonly NavigationItem\[\]/)
-assert.match(contract, /roles\?: readonly OrganizationRole\[\]/)
+assert.match(contract, /roles\?: readonly UserRole\[\]/)
 assert.match(contract, /notFoundPage/)
 assert.match(docs, /never selects.*application or organization/is)
 assert.match(docs, /npm update @erme2\/latte/)

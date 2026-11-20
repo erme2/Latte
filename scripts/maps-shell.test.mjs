@@ -103,8 +103,8 @@ assert.deepEqual(calls, [
 const routes = [
   { id: 'dashboard', path: '/dashboard', function: 'dashboard' },
   { id: 'records', path: '/records/:source/:table', function: 'records' },
-  { id: 'connection', path: '/connections/:connectionId', roles: ['organization_administrator'] },
-  { id: 'organization', path: '/organization', roles: ['organization_administrator'], function: 'members' },
+  { id: 'connection', path: '/connections/:connectionId', roles: ['admin'] },
+  { id: 'organization', path: '/organization', roles: ['admin'], function: 'members' },
 ]
 const functionPaths = functionPathsFromRoutes(routes)
 assert.deepEqual(functionPaths, { dashboard: '/dashboard', members: '/organization' })
@@ -143,10 +143,10 @@ assert.deepEqual([...bakery.enabledFunctions], ['records'])
 assert.deepEqual(bakery.brand, {})
 
 // Switched-off functions hide their routes too; untagged routes stay.
-const route = (pathname, shell, role = 'organization_administrator') =>
+const route = (pathname, shell, role = 'admin') =>
   resolveProductRoute(routes, pathname, role, shell?.enabledFunctions).status
 assert.equal(route('/organization', sweegly), 'matched')
-assert.equal(route('/organization', sweegly, 'organization_user'), 'forbidden')
+assert.equal(route('/organization', sweegly, 'user'), 'forbidden')
 assert.equal(route('/organization', bakery), 'not_found')
 assert.equal(route('/dashboard', bakery), 'not_found')
 assert.equal(route('/records/app/orders', bakery), 'matched')
