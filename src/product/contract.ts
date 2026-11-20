@@ -6,6 +6,7 @@ import {
   createPaneClient,
   createOrganizationRouter,
   createRowService,
+  isMapName,
   type LatteRuntimeConfig,
   type LatteSession,
   type MapFunctionKey,
@@ -54,6 +55,14 @@ export type NavigationItem = {
   roles?: readonly UserRole[]
 }
 
+// A fixed entry that opens the record list of one table, by the stable names its map uses.
+export type RecordMenuItem = {
+  id: string
+  label: string
+  source: string
+  table: string
+}
+
 export type LatteProduct<Services extends object> = {
   brand: { name: string; tagline: string }
   authenticationHosts: readonly string[]
@@ -61,6 +70,8 @@ export type LatteProduct<Services extends object> = {
   createServices(platform: PlatformContext): Services
   routes: readonly ProductRoute<Services>[]
   navigation: readonly NavigationItem[]
+  // Fixed record entries, shown while the install has the records function on. Empty until the maps-driven menu (Latte#71, #72).
+  recordMenu?: readonly RecordMenuItem[]
   forbiddenPage: ComponentType<ProductPageProps<Services>>
   notFoundPage: ComponentType<ProductPageProps<Services>>
 }
@@ -131,6 +142,17 @@ export function defineLatteProduct<Services extends object>(
     }
     if (route.function) {
       throw new Error(`Navigation item ${item.id} is always on, so it cannot open the switchable ${route.function} function.`)
+    }
+  }
+
+  const recordMenuIds = new Set<string>()
+  for (const item of product.recordMenu ?? []) {
+    if (recordMenuIds.has(item.id)) {
+      throw new Error(`Duplicate record menu item: ${item.id}.`)
+    }
+    recordMenuIds.add(item.id)
+    if (!isMapName(item.source) || !isMapName(item.table)) {
+      throw new Error(`Record menu item ${item.id} needs stable map names.`)
     }
   }
 
