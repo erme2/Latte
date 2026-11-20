@@ -1,8 +1,5 @@
 import { defineLatteProduct } from './contract'
-import { OrganizationAdministration } from './organization/OrganizationAdministration'
 import { Connection, Dashboard, Forbidden, NotFound } from './pages'
-import { RecordEditor } from './records/RecordEditor'
-import { RecordList } from './records/RecordList'
 import { createServices, type ProductServices } from './services'
 
 export const product = defineLatteProduct<ProductServices>({
@@ -21,36 +18,10 @@ export const product = defineLatteProduct<ProductServices>({
       function: 'dashboard',
     },
     {
-      id: 'records',
-      path: '/records/:source/:table',
-      component: RecordList,
-      function: 'records',
-    },
-    // Listed before the edit route so /new opens the create form.
-    {
-      id: 'record-new',
-      path: '/records/:source/:table/new',
-      component: RecordEditor,
-      function: 'records',
-    },
-    {
-      id: 'record-edit',
-      path: '/records/:source/:table/:rowKey',
-      component: RecordEditor,
-      function: 'records',
-    },
-    {
       id: 'connection',
       path: '/connections/:connectionId',
       component: Connection,
       roles: ['admin'],
-    },
-    {
-      id: 'organization-administration',
-      path: '/organization',
-      component: OrganizationAdministration,
-      roles: ['admin'],
-      function: 'members',
     },
   ],
   // The menu comes from the install's maps. List here only the always-on

@@ -12,7 +12,7 @@ export function Dashboard({ context }: PageProps) {
           Signed in as {context.session.data.user.attributes.role === 'admin' ? 'administrator' : 'user'}.
         </p>
       </div>
-      <code>{context.services.connections.path}</code>
+      
     </section>
   )
 }

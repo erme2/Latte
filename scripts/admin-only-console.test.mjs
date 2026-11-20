@@ -13,7 +13,6 @@ const organizationId = '01900000-0000-7000-8000-000000000002'
 const baseConfig = {
   paneBaseUrl: '/pane',
   expectedApplicationId: applicationId,
-  expectedOrganizationId: organizationId,
   expectedOrigin: 'https://admin.example.test',
 }
 const productAppUrl = 'https://app.example.test/'

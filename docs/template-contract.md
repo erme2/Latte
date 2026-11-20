@@ -113,7 +113,6 @@ Deployments serve `/latte-config.json` before React starts:
 {
   "paneBaseUrl": "/pane",
   "expectedApplicationId": "01900000-0000-7000-8000-000000000001",
-  "expectedOrganizationId": "01900000-0000-7000-8000-000000000002",
   "expectedOrigin": "https://app.example.test"
 }
 ```
@@ -133,7 +132,6 @@ console at `https://admin.dev.sweegly.co.uk` next to the product app at
 {
   "paneBaseUrl": "/pane",
   "expectedApplicationId": "01900000-0000-7000-8000-000000000001",
-  "expectedOrganizationId": "01900000-0000-7000-8000-000000000002",
   "expectedOrigin": "https://admin.dev.sweegly.co.uk",
   "adminOnly": { "productAppUrl": "https://dev.sweegly.co.uk/" }
 }

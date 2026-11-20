@@ -75,10 +75,7 @@ it only through its package name, the same boundary derived apps use.
 | `src/client.ts` | `createPaneClient`: the axios client (`withCredentials`, `XSRF-TOKEN` to `X-XSRF-TOKEN`, Pane access errors normalized) |
 | `src/auth.ts` | `createAuthService` (session, login intent, single-flight callback, logout), `resolveInitialAuthentication`, invitation token checks, `validateAuthRedirectUrl`, sign-in failure messages |
 | `src/session.ts` | `assertLatteSession` (mode, application, organization and statuses), `hasOrganizationRole`, admin-only redirects |
-| `src/organization.ts` | `createOrganizationRouter`: every organization-scoped Pane path, with the organization ID fixed from config |
 | `src/errors.ts` | `PaneAccessError`, `paneAccessFailure`, `paneErrorCode`, `paneErrorStatus`, `rejectPaneAccessFailure` |
-| `src/crud.ts` | `createRowService`: generic row list, get, create, update and remove |
-| `src/admin.ts` | `createOrganizationAdministrationService`: memberships and invitations |
 | `src/versioned.ts` | `versionedItemResponse`: pairs an item document with its required `ETag` |
 | `src/release.ts` | `loadLatteRelease` and labels for the deployed version badge |
 | `src/types.ts` | `LatteRuntimeConfig`, `LatteSession`, resource and response shapes, `organizationRoles` |
@@ -98,7 +95,6 @@ What a derived application copies and owns.
 | `src/product/manifest.tsx` | The product manifest: brand, auth hosts, default path, routes, navigation, forbidden and not-found pages |
 | `src/product/services.ts` | `createServices`: product services built once from the platform context |
 | `src/product/pages.tsx` | Placeholder pages: `Dashboard`, `Connection`, `Forbidden`, `NotFound` |
-| `src/product/organization/` | Organization administration: `OrganizationAdministration.tsx` (view), `useOrganizationAdministration.ts` (state and actions), `presentation.ts` (messages and formatting) |
 | `src/ReleaseBadge.tsx` | "Built with Latte" link and deployed version |
 
 ### Invariants and forbidden dependencies
@@ -197,15 +193,10 @@ current `ETag`, sends it in `If-Match`, then reloads both lists. Failures are sh
 `validation_failed`, `rate_limited`, or a generic message). New and resent invitations show the
 delivery URL once, with a copy button.
 
-### Generic rows (Current, package only)
+### Generic rows (removed)
 
-`createRowService` in `packages/latte-core/src/crud.ts` covers list, get, create, update and remove
-on Pane's UUID-addressed
-`/organizations/{organization}/connections/{connection}/tables/{table}/rows` routes. Writes send
-`{ "values": ... }`; get, create and update return the document with its `ETag`; update and remove
-require it in `If-Match`. No page in the starter uses it yet. Pane's API now marks these routes as
-belonging to external sources, which are deferred, so this service is transitional (see
-differences below).
+The generic row service (`crud.ts`) and the data service (`data.ts`) were removed with the organization model.
+Record views return with the `/crud` route (Latte#80).
 
 ### Shell, connections, schema discovery and CRUD screens
 
@@ -265,9 +256,8 @@ Update this document when any of these land.
 - **Manifest** (`src/product/manifest.tsx`): brand, authentication hosts, routes, navigation,
   forbidden and not-found pages.
 - **Services** (`createServices` in `src/product/services.ts`): product API calls built on the
-  platform context (`pane`, `organization`, `rows`, `config`).
-- **Feature folders**: one folder per feature under `src/product/` (as
-  `src/product/organization/`), with the view, a state hook and presentation helpers.
+  platform context (`pane`, `config`, `maps`).
+- **Feature folders**: one folder per feature under `src/product/`, with the view, a state hook and presentation helpers.
 - **Package**: changes that every derived app needs (Pane contract, authentication, errors) go into
   `packages/latte-core` and ship in a new `@erme2/latte` version.
 
@@ -278,7 +268,7 @@ the package; CI (`.github/workflows/pr-tests.yml`) runs `npm test`, `npm run lin
 `npm run build`.
 
 - Package behaviour (config, auth, sessions, errors, rows, administration): tests against the built
-  package, such as `scripts/auth-service.test.mjs` and `scripts/row-service.test.mjs`.
+  package, such as `scripts/auth-service.test.mjs`.
 - Shell lifecycle: `scripts/auth-lifecycle.test.mjs` runs `src/auth/lifecycle.mjs` with a fake
   browser.
 - Routing and manifest rules: `scripts/product-extension.test.mjs`.
