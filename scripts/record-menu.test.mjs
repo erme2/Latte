@@ -10,14 +10,8 @@ const app = readFileSync('src/App.tsx', 'utf8')
 const entries = [...manifest.matchAll(/\{ id: '([^']+)', label: '([^']+)', source: '([^']+)', table: '([^']+)' \}/g)]
   .map(([, id, label, source, table]) => ({ id, label, source, table }))
 
-assert.ok(entries.length >= 6, 'the menu lists system tables, maps and the Sweegly data tables')
-assert.equal(new Set(entries.map((entry) => entry.id)).size, entries.length, 'menu ids are unique')
-for (const entry of entries) {
-  assert.ok(isMapName(entry.source) && isMapName(entry.table), `${entry.id} uses stable map names`)
-}
-for (const table of ['tables', 'fields', 'lists', 'products']) {
-  assert.ok(entries.some((entry) => entry.table === table), `${table} has a menu entry`)
-}
+// Hidden until the record views use Pane's /crud route (Latte#85 review): no entries are exposed.
+assert.equal(entries.length, 0, 'no record menu entries are exposed before the /crud record views ship')
 
 assert.match(contract, /recordMenu\?: readonly RecordMenuItem\[\]/)
 assert.match(contract, /Duplicate record menu item/)

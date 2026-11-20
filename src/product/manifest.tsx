@@ -56,16 +56,9 @@ export const product = defineLatteProduct<ProductServices>({
   // The menu comes from the install's maps. List here only the always-on
   // entries, such as the maps, menu and settings editors.
   navigation: [],
-  // Fixed menu for the Story/Action/Mapper CRUD route: system tables, maps and the
-  // Sweegly data tables. The maps-driven menu replaces it later (Latte#71, #72).
-  recordMenu: [
-    { id: 'maps-tables', label: 'Map tables', source: 'install', table: 'tables' },
-    { id: 'maps-fields', label: 'Map fields', source: 'install', table: 'fields' },
-    { id: 'maps-field-types', label: 'Field types', source: 'install', table: 'field_types' },
-    { id: 'maps-validation-types', label: 'Validation types', source: 'install', table: 'validation_types' },
-    { id: 'lists', label: 'Lists', source: 'install', table: 'lists' },
-    { id: 'products', label: 'Products', source: 'install', table: 'products' },
-  ],
+  // Fixed menu for the Story/Action/Mapper CRUD route. Hidden for now: the record views
+  // still call Pane's removed /data routes; the entries come back when they use /crud (Latte#80).
+  recordMenu: [],
   forbiddenPage: Forbidden,
   notFoundPage: NotFound,
 })
