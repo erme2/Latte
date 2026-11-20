@@ -36,7 +36,7 @@ export function OrganizationAdministration({ context }: ProductPageProps<Product
     <section className="admin-layout">
       <div className="page-heading">
         <div>
-          <p className="eyebrow">{context.session.data.organization.attributes.name}</p>
+          <p className="eyebrow">{context.session.data.application.attributes.name}</p>
           <h2>Organization administration</h2>
         </div>
         <button className="button secondary" type="button" onClick={() => { void refresh() }}>

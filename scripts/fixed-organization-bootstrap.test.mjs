@@ -34,15 +34,14 @@ assert.equal(organization.organizationId, organizationId)
 assert.equal(organization.path('connections', 'connection/from-url', 'tables', 'people'), `/organizations/${organizationId}/connections/connection%2Ffrom-url/tables/people`)
 assert.throws(() => organization.path('connections', ''), /must not be empty/)
 
-for (const [field, expected] of [['application', /application does not match/], ['organization', /organization does not match/]]) {
-  const changed = structuredClone(session)
-  changed.data[field].id = '01900000-0000-7000-8000-000000000099'
-  assert.throws(() => assertLatteSession(changed, config), expected)
-}
-for (const [resource, expected] of [['application', /application is not active/], ['organization', /organization is not active/], ['membership', /membership is not active/]]) {
-  const changed = structuredClone(session)
-  changed.data[resource].attributes.status = 'suspended'
-  assert.throws(() => assertLatteSession(changed, config), expected)
+const changed = structuredClone(session)
+changed.data.application.id = '01900000-0000-7000-8000-000000000099'
+assert.throws(() => assertLatteSession(changed, config), /application does not match/)
+
+for (const resource of ['application']) {
+  const changedStatus = structuredClone(session)
+  changedStatus.data[resource].attributes.status = 'suspended'
+  assert.throws(() => assertLatteSession(changedStatus, config), /application is not active/)
 }
 
 function pane403(code, message = 'Sensitive server detail', request = {}) {

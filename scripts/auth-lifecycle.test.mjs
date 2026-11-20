@@ -15,7 +15,7 @@ const config = {
 }
 
 function sessionFor(role) {
-  return { data: { mode: 'latte', membership: { attributes: { role, status: 'active' } } } }
+  return { data: { mode: 'latte', user: { attributes: { email: 'admin@example.test', name: 'Admin', role } } } }
 }
 
 function paneError(status, code) {
@@ -54,8 +54,8 @@ function setup({ path = '/dashboard', auth = {}, runtimeConfig = config } = {}) 
   const runtime = {
     config: runtimeConfig,
     auth: {
-      session: async () => sessionFor('organization_administrator'),
-      completeLogin: async () => sessionFor('organization_administrator'),
+      session: async () => sessionFor('admin'),
+      completeLogin: async () => sessionFor('admin'),
       beginLogin: async (redirectTo, invitationToken) => { logins.push([redirectTo, invitationToken]) },
       logout: async () => 'https://api.workos.com/logout',
       ...auth,
@@ -72,7 +72,7 @@ const isActive = () => true
   const { lifecycle, reports } = setup()
   await authenticate(lifecycle, isActive)
   assert.equal(reports.at(-1).state, 'authenticated')
-  assert.equal(reports.at(-1).session.data.membership.attributes.role, 'organization_administrator')
+  assert.equal(reports.at(-1).session.data.user.attributes.role, 'admin')
 }
 
 // After the WorkOS callback, the callback query is replaced by the default path.
@@ -133,7 +133,7 @@ const isActive = () => true
 {
   const { lifecycle, reports, browser } = setup({
     runtimeConfig: { ...config, adminOnly: { productAppUrl: 'https://app.example.test/' } },
-    auth: { session: async () => sessionFor('organization_user') },
+    auth: { session: async () => sessionFor('user') },
   })
   await authenticate(lifecycle, isActive)
   assert.deepEqual(reports.map((status) => status.state), ['redirecting'])

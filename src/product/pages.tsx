@@ -7,9 +7,9 @@ export function Dashboard({ context }: PageProps) {
   return (
     <section className="activity">
       <div>
-        <h2>{context.session.data.organization.attributes.name}</h2>
+        <h2>{context.session.data.application.attributes.name}</h2>
         <p>
-          Signed in as {context.session.data.membership.attributes.role.replaceAll('_', ' ')}.
+          Signed in as {context.session.data.user.attributes.role === 'admin' ? 'administrator' : 'user'}.
         </p>
       </div>
       <code>{context.services.connections.path}</code>

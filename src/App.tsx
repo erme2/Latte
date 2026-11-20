@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { hasOrganizationRole } from '@erme2/latte'
+import { hasUserRole } from '@erme2/latte'
 import { useLatteAuthentication } from './auth/useLatteAuthentication'
 import type { LatteProduct, LatteRuntime, ProductContext } from './product/contract'
 import { functionPathsFromRoutes, resolveProductRoute } from './product/runtime.mjs'
@@ -51,7 +51,7 @@ export default function App<Services extends object>({ runtime, product }: Props
   const resolution = resolveProductRoute(
     product.routes,
     window.location.pathname,
-    session.data.membership.attributes.role,
+    session.data.user.attributes.role,
     maps.status === 'ready' ? maps.shell.enabledFunctions : null,
   )
   const params = resolution.status === 'not_found' ? {} : resolution.params
@@ -97,7 +97,7 @@ export default function App<Services extends object>({ runtime, product }: Props
             ))
             : null}
           {product.navigation
-            .filter((item) => !item.roles || hasOrganizationRole(session, item.roles))
+            .filter((item) => !item.roles || hasUserRole(session, item.roles))
             .map((item) => (
               <a href={item.path} key={item.id}>{item.label}</a>
             ))}

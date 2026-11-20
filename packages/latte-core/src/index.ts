@@ -93,10 +93,11 @@ export type {
 } from './data.js'
 export { createRowService } from './crud.js'
 export type { PaneRowValue, PaneRowValues } from './crud.js'
-export { adminOnlyLoginUrl, adminOnlyRedirectUrl, assertLatteSession, hasOrganizationRole } from './session.js'
+export { adminOnlyLoginUrl, adminOnlyRedirectUrl, assertLatteSession, hasUserRole } from './session.js'
 export { createOrganizationRouter } from './organization.js'
 export type { OrganizationRouter } from './organization.js'
-export { organizationRoles } from './types.js'
+export { organizationRoles, userRoles } from './types.js'
+export type { UserRole } from './types.js'
 export type {
   CollectionResponse,
   ItemResponse,

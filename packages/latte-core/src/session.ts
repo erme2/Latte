@@ -1,4 +1,4 @@
-import type { LatteRuntimeConfig, LatteSession, OrganizationRole } from './types.js'
+import type { LatteRuntimeConfig, LatteSession, UserRole } from './types.js'
 
 export function assertLatteSession(
   session: LatteSession,
@@ -12,30 +12,15 @@ export function assertLatteSession(
     throw new Error('Pane session application does not match this deployment.')
   }
 
-  if (session.data.organization.id !== config.expectedOrganizationId) {
-    throw new Error('Pane session organization does not match this deployment.')
-  }
-
   if (session.data.application.attributes.status !== 'active') {
     throw new Error('Pane session application is not active.')
-  }
-
-  if (session.data.organization.attributes.status !== 'active') {
-    throw new Error('Pane session organization is not active.')
-  }
-
-  if (session.data.membership.attributes.status !== 'active') {
-    throw new Error('Pane session membership is not active.')
   }
 
   return session
 }
 
-export function hasOrganizationRole(
-  session: LatteSession,
-  allowedRoles: readonly OrganizationRole[],
-): boolean {
-  return allowedRoles.includes(session.data.membership.attributes.role)
+export function hasUserRole(session: LatteSession, allowedRoles: readonly UserRole[]): boolean {
+  return allowedRoles.includes(session.data.user.attributes.role)
 }
 
 // Where an admin-only console sends this session instead of rendering, or
@@ -44,7 +29,7 @@ export function adminOnlyRedirectUrl(
   session: LatteSession,
   config: LatteRuntimeConfig,
 ): string | null {
-  if (!config.adminOnly || hasOrganizationRole(session, ['organization_administrator'])) {
+  if (!config.adminOnly || hasUserRole(session, ['admin'])) {
     return null
   }
 

@@ -9,7 +9,7 @@ import {
   type LatteRuntimeConfig,
   type LatteSession,
   type MapFunctionKey,
-  type OrganizationRole,
+  type UserRole,
 } from '@erme2/latte'
 import type { ComponentType } from 'react'
 import {
@@ -41,7 +41,7 @@ export type ProductRoute<Services extends object> = {
   id: string
   path: `/${string}`
   component: ComponentType<ProductPageProps<Services>>
-  roles?: readonly OrganizationRole[]
+  roles?: readonly UserRole[]
   // The maps function this page belongs to: hidden while the install has it switched off.
   function?: MapFunctionKey
 }
@@ -51,7 +51,7 @@ export type NavigationItem = {
   id: string
   label: string
   path: `/${string}`
-  roles?: readonly OrganizationRole[]
+  roles?: readonly UserRole[]
 }
 
 export type LatteProduct<Services extends object> = {

@@ -179,7 +179,7 @@ for (const { id, path } of routes) {
 }
 assert.ok(manifest.indexOf("id: 'record-new'") < manifest.indexOf("id: 'record-edit'"))
 const on = new Set(['records'])
-const resolve = (pathname, enabled = on) => resolveProductRoute(routes, pathname, 'organization_user', enabled)
+const resolve = (pathname, enabled = on) => resolveProductRoute(routes, pathname, 'user', enabled)
 assert.equal(resolve('/records/app/products/new').route.id, 'record-new')
 assert.deepEqual(resolve('/records/app/products/Mg').params, { source: 'app', table: 'products', rowKey: 'Mg' })
 assert.equal(resolve('/records/app/products/Mg', new Set()).status, 'not_found')

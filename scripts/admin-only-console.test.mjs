@@ -87,7 +87,7 @@ function sessionWithRole(role) {
   return {
     data: {
       mode: 'latte',
-      user: { id: 'u', type: 'user', attributes: { email: 'user@example.test', name: 'User' } },
+      user: { id: 'u', type: 'user', attributes: { email: 'user@example.test', name: 'User', role } },
       application: {
         id: applicationId,
         type: 'application',
@@ -101,35 +101,13 @@ function sessionWithRole(role) {
           updated_at: '2026-11-07T00:00:00Z',
         },
       },
-      organization: {
-        id: organizationId,
-        type: 'organization',
-        attributes: {
-          name: 'Example',
-          slug: 'example',
-          status: 'active',
-          database_limit: 1,
-          created_at: '2026-11-07T00:00:00Z',
-          updated_at: '2026-11-07T00:00:00Z',
-        },
-      },
-      membership: {
-        id: 'm',
-        type: 'membership',
-        attributes: {
-          role,
-          status: 'active',
-          created_at: '2026-11-07T00:00:00Z',
-          updated_at: '2026-11-07T00:00:00Z',
-        },
-      },
     },
     meta: { request_id: 'r' },
   }
 }
 
-const admin = sessionWithRole('organization_administrator')
-const member = sessionWithRole('organization_user')
+const admin = sessionWithRole('admin')
+const member = sessionWithRole('user')
 const adminOnlyConfig = parseLatteRuntimeConfig({ ...baseConfig, adminOnly: { productAppUrl } })
 const defaultConfig = parseLatteRuntimeConfig(baseConfig)
 
@@ -148,7 +126,7 @@ function authReturning(session) {
   }
 }
 
-// An organization administrator can use the admin console.
+// An administrator can use the admin console.
 assert.deepEqual(await resolveInitialAuthentication('', authReturning(admin), adminOnlyConfig), {
   status: 'authenticated',
   session: admin,
