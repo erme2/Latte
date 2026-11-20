@@ -15,7 +15,7 @@ assert.equal(new Set(entries.map((entry) => entry.id)).size, entries.length, 'me
 for (const entry of entries) {
   assert.ok(isMapName(entry.source) && isMapName(entry.table), `${entry.id} uses stable map names`)
 }
-for (const table of ['maps_tables', 'lists', 'products']) {
+for (const table of ['tables', 'fields', 'lists', 'products']) {
   assert.ok(entries.some((entry) => entry.table === table), `${table} has a menu entry`)
 }
 
