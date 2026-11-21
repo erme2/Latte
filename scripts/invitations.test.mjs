@@ -25,12 +25,17 @@ pane.defaults.adapter = async (request) => {
     return reply(201, { data: invitation, meta: { request_id: 'r', invitation_url: 'https://app.test/?invitation_token=x' } }, { etag: '"e1"' })
   }
   if (request.method === 'delete') return reply(204, '')
+  if (request.params?.['page[cursor]'] === 'c2') {
+    return reply(200, { data: [{ ...invitation, id: 'older' }], meta: { request_id: 'r', page: { next_cursor: null, has_more: false } } })
+  }
   return reply(200, { data: [invitation], meta: { request_id: 'r', page: { next_cursor: null, has_more: false } } })
 }
 
 const service = createInvitationsService(pane)
 assert.equal((await service.list('admin')).data.length, 1)
 await service.list('user')
+const older = await service.list('admin', 'c2')
+assert.equal(older.data[0].id, 'older')
 const created = await service.create('user', ' a@example.test ')
 assert.equal(created.etag, '"e1"')
 assert.equal(created.document.meta.invitation_url, 'https://app.test/?invitation_token=x')
@@ -41,12 +46,17 @@ await assert.rejects(service.revoke('user', '../x', '"e"'))
 assert.deepEqual(calls.map(([method, url]) => `${method} ${url}`), [
   'get /installation/pane-admin-invitations',
   'get /installation/user-invitations',
+  'get /installation/pane-admin-invitations',
   'post /installation/user-invitations',
   'post /installation/pane-admin-invitations',
   `delete /installation/user-invitations/${id}`,
 ])
-assert.deepEqual(calls[2][3] && JSON.parse(calls[2][3]), { email: 'a@example.test' })
-assert.equal(calls[4][2], '"e1"')
+assert.deepEqual(calls[3][3] && JSON.parse(calls[3][3]), { email: 'a@example.test' })
+assert.equal(calls[5][2], '"e1"')
+
+const members = readFileSync('src/product/members/Members.tsx', 'utf8')
+assert.match(members, /has_more/)
+assert.match(members, /next_cursor/)
 
 // The members page is admin only and sits behind the members function.
 const manifest = readFileSync('src/product/manifest.tsx', 'utf8')

@@ -41,7 +41,7 @@ export function createInvitationsService(pane: AxiosInstance) {
   return {
     async list(kind: InvitationKind, cursor?: string): Promise<CollectionResponse<InvitationResource>> {
       const response = await pane
-        .get<CollectionResponse<InvitationResource>>(paths[kind], cursor ? { params: { cursor } } : undefined)
+        .get<CollectionResponse<InvitationResource>>(paths[kind], cursor ? { params: { 'page[cursor]': cursor } } : undefined)
         .catch(rejectPaneAccessFailure)
       return response.data
     },

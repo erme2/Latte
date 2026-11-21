@@ -9,6 +9,21 @@ const kindLabels: Record<InvitationKind, string> = { admin: 'administrator', use
 
 type Row = { invitation: InvitationResource; kind: InvitationKind; etag?: string }
 
+// Pane pages each collection (25 by default): follow next_cursor so older invitations stay reachable.
+const maxPages = 40
+
+async function listAll(invitations: ProductServices['invitations'], kind: InvitationKind): Promise<InvitationResource[]> {
+  const all: InvitationResource[] = []
+  let cursor: string | undefined
+  for (let page = 0; page < maxPages; page += 1) {
+    const result = await invitations.list(kind, cursor)
+    all.push(...result.data)
+    if (!result.meta.page.has_more || !result.meta.page.next_cursor) break
+    cursor = result.meta.page.next_cursor
+  }
+  return all
+}
+
 function failureMessage(error: unknown): string {
   switch (paneErrorCode(error)) {
     case 'operation_conflict': return 'That email already belongs to an active member.'
@@ -31,11 +46,11 @@ export function Members({ context }: Props) {
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [admins, users] = await Promise.all([invitations.list('admin'), invitations.list('user')])
+      const [admins, users] = await Promise.all([listAll(invitations, 'admin'), listAll(invitations, 'user')])
       // Pane sends an invitation's ETag only when it is created, so the ones read here can't be revoked from this list.
       setRows((previous) => [
-        ...admins.data.map((invitation) => ({ invitation, kind: 'admin' as const })),
-        ...users.data.map((invitation) => ({ invitation, kind: 'user' as const })),
+        ...admins.map((invitation) => ({ invitation, kind: 'admin' as const })),
+        ...users.map((invitation) => ({ invitation, kind: 'user' as const })),
       ].map((row) => ({ ...row, etag: previous.find((old) => old.invitation.id === row.invitation.id)?.etag })))
       setError(null)
     } catch (failure) {
