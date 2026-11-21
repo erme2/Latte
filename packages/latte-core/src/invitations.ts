@@ -38,12 +38,30 @@ const paths: Record<InvitationKind, string> = {
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export function createInvitationsService(pane: AxiosInstance) {
+  async function list(kind: InvitationKind, cursor?: string): Promise<CollectionResponse<InvitationResource>> {
+    const response = await pane
+      .get<CollectionResponse<InvitationResource>>(paths[kind], cursor ? { params: { 'page[cursor]': cursor } } : undefined)
+      .catch(rejectPaneAccessFailure)
+    return response.data
+  }
+
   return {
-    async list(kind: InvitationKind, cursor?: string): Promise<CollectionResponse<InvitationResource>> {
-      const response = await pane
-        .get<CollectionResponse<InvitationResource>>(paths[kind], cursor ? { params: { 'page[cursor]': cursor } } : undefined)
-        .catch(rejectPaneAccessFailure)
-      return response.data
+    list,
+
+    // Every page of a kind, oldest included. Stops only when Pane has no more pages, or when it repeats a cursor
+    // (which would otherwise loop forever).
+    async listAll(kind: InvitationKind): Promise<InvitationResource[]> {
+      const all: InvitationResource[] = []
+      const seen = new Set<string>()
+      let cursor: string | undefined
+      for (;;) {
+        const result = await list(kind, cursor)
+        all.push(...result.data)
+        const next = result.meta.page.next_cursor
+        if (!result.meta.page.has_more || !next || seen.has(next)) return all
+        seen.add(next)
+        cursor = next
+      }
     },
 
     async create(kind: InvitationKind, email: string): Promise<InvitationCreated> {

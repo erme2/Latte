@@ -54,9 +54,35 @@ assert.deepEqual(calls.map(([method, url]) => `${method} ${url}`), [
 assert.deepEqual(calls[3][3] && JSON.parse(calls[3][3]), { email: 'a@example.test' })
 assert.equal(calls[5][2], '"e1"')
 
+// listAll follows every page, also past 40 pages (1,001 entries at 25 per page), and stops on a repeated cursor.
+const pagedPane = createPaneClient({
+  paneBaseUrl: 'https://pane.example.test',
+  expectedApplicationId: '01900000-0000-7000-8000-000000000042',
+  expectedOrigin: 'https://latte.test',
+})
+let pageCalls = 0
+let loop = false
+pagedPane.defaults.adapter = async (request) => {
+  pageCalls += 1
+  const start = Number(request.params?.['page[cursor]'] ?? 0)
+  const total = 1001
+  const items = []
+  for (let n = start; n < Math.min(start + 25, total); n += 1) items.push({ ...invitation, id: `i${n}` })
+  const hasMore = loop || start + 25 < total
+  const next = loop ? 'same' : String(start + 25)
+  return { data: { data: items, meta: { request_id: 'r', page: { next_cursor: hasMore ? next : null, has_more: hasMore } } }, status: 200, statusText: '', headers: {}, config: request }
+}
+const everything = await createInvitationsService(pagedPane).listAll('user')
+assert.equal(everything.length, 1001)
+assert.equal(everything.at(-1).id, 'i1000')
+assert.equal(pageCalls, 41)
+loop = true
+pageCalls = 0
+await createInvitationsService(pagedPane).listAll('user')
+assert.equal(pageCalls, 2)
+
 const members = readFileSync('src/product/members/Members.tsx', 'utf8')
-assert.match(members, /has_more/)
-assert.match(members, /next_cursor/)
+assert.match(members, /invitations\.listAll\(/)
 
 // The members page is admin only and sits behind the members function.
 const manifest = readFileSync('src/product/manifest.tsx', 'utf8')
