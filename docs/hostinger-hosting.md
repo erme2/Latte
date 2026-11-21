@@ -43,7 +43,6 @@ Production Latte configuration for the alpha should use:
 {
   "paneBaseUrl": "https://pane.erme2.com",
   "expectedApplicationId": "REPLACE_WITH_PANE_APPLICATION_UUID",
-  "expectedOrganizationId": "REPLACE_WITH_PANE_ORGANIZATION_UUID",
   "expectedOrigin": "https://latte.erme2.com"
 }
 ```
@@ -62,7 +61,6 @@ sends signed-out visitors to the app's login page. Set `PUBLIC_CONFIG_JSON` to:
 {
   "paneBaseUrl": "https://apidev.sweegly.co.uk",
   "expectedApplicationId": "326f1263-800a-5db7-8e63-4489072f2668",
-  "expectedOrganizationId": "e97c54d0-6986-4b06-a955-cb11b63a96dd",
   "expectedOrigin": "https://admindev.sweegly.co.uk",
   "adminOnly": {
     "productAppUrl": "https://appdev.sweegly.co.uk/",

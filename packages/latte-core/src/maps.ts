@@ -1,7 +1,6 @@
 import type { AxiosInstance } from 'axios'
 import type { ItemResponse, LatteRuntimeConfig, VersionedItemResponse } from './types.js'
 import { rejectPaneAccessFailure } from './errors.js'
-import { createOrganizationRouter } from './organization.js'
 import { versionedItemResponse as versioned } from './versioned.js'
 
 // Shapes of Pane's maps read API (`getMaps` and `getTableMap` in contracts/pane-v1.json, Pane#154).
@@ -92,13 +91,11 @@ export function isMapName(value: unknown): value is string {
   return typeof value === 'string' && mapNamePattern.test(value)
 }
 
-export function createMapsService(pane: AxiosInstance, config: LatteRuntimeConfig) {
-  const organization = createOrganizationRouter(config)
-
+export function createMapsService(pane: AxiosInstance, _config: LatteRuntimeConfig) {
   return {
     async getMaps(): Promise<VersionedItemResponse<MapsResource>> {
       const response = await pane
-        .get<ItemResponse<MapsResource>>(organization.path('maps'))
+        .get<ItemResponse<MapsResource>>('/maps')
         .catch(rejectPaneAccessFailure)
       return versioned(response)
     },
@@ -110,7 +107,7 @@ export function createMapsService(pane: AxiosInstance, config: LatteRuntimeConfi
       }
 
       const response = await pane
-        .get<ItemResponse<TableMapResource>>(organization.path('maps', source, table))
+        .get<ItemResponse<TableMapResource>>(`/maps/${source}/${table}`)
         .catch(rejectPaneAccessFailure)
       return versioned(response)
     },

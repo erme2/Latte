@@ -34,7 +34,6 @@ const organizationId = '01900000-0000-7000-8000-000000000002'
 const config = {
   paneBaseUrl: '/pane',
   expectedApplicationId: applicationId,
-  expectedOrganizationId: organizationId,
   expectedOrigin: 'https://example.test',
 }
 const session = {

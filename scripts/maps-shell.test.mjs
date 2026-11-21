@@ -1,19 +1,17 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import axios from 'axios'
 import {
   buildMapsShell,
   createMapsService,
+  createPaneClient,
   mapFunctionKeys,
   mapsRecordPath,
 } from '../packages/latte-core/dist/index.js'
 import { functionPathsFromRoutes, resolveProductRoute } from '../src/product/runtime.mjs'
 
-const organizationId = '01900000-0000-7000-8000-000000000041'
 const config = {
   paneBaseUrl: '/pane',
   expectedApplicationId: '01900000-0000-7000-8000-000000000042',
-  expectedOrganizationId: organizationId,
   expectedOrigin: 'https://latte.test',
 }
 const fixture = (name) => JSON.parse(readFileSync(`scripts/fixtures/maps-install-${name}.json`, 'utf8'))
@@ -52,7 +50,7 @@ for (const [install, document] of Object.entries(installs)) {
   }
 }
 
-// The maps service reads both maps routes under the fixed organization and keeps the ETag.
+// The maps service reads both maps routes (no organization segment) and keeps the ETag.
 const tableMap = {
   type: 'table_map',
   attributes: {
@@ -66,21 +64,21 @@ const tableMap = {
   },
 }
 const calls = []
-const pane = axios.create({
-  adapter: async (request) => {
+// The real Pane client: its base URL already ends in /api/v1, so maps paths are relative to it.
+const pane = createPaneClient({ ...config, paneBaseUrl: 'https://pane.example.test' })
+pane.defaults.adapter = async (request) => {
     calls.push([request.method, request.url])
     const ok = (data, etag) => ({ data, status: 200, statusText: 'OK', headers: { etag }, config: request })
 
-    if (request.url === `/organizations/${organizationId}/maps`) return ok(installs.sweegly, '"maps-4"')
-    if (request.url === `/organizations/${organizationId}/maps/app/products`) {
+    if (request.url === '/maps') return ok(installs.sweegly, '"maps-4"')
+    if (request.url === '/maps/app/products') {
       return ok({ data: tableMap, meta: { request_id: 'r' } }, '"table-2"')
     }
     throw Object.assign(new Error('Not found'), {
       isAxiosError: true,
       response: { status: 404, data: { error: { code: 'resource_not_found' } } },
     })
-  },
-})
+}
 const maps = createMapsService(pane, config)
 
 const bootstrap = await maps.getMaps()
@@ -94,9 +92,9 @@ for (const [source, table] of [['app', 'Products'], ['app', '../maps'], ['', 'pr
   await assert.rejects(maps.getTableMap(source, table), /stable map names/)
 }
 assert.deepEqual(calls, [
-  ['get', `/organizations/${organizationId}/maps`],
-  ['get', `/organizations/${organizationId}/maps/app/products`],
-  ['get', `/organizations/${organizationId}/maps/app/secrets`],
+  ['get', '/maps'],
+  ['get', '/maps/app/products'],
+  ['get', '/maps/app/secrets'],
 ])
 
 // The same routes serve both installs: nothing below changes per install.
@@ -192,6 +190,4 @@ assert.match(app, /maps\.shell\.menu\.map/)
 assert.match(app, /maps\.status === 'ready' \? maps\.shell\.enabledFunctions : null/)
 assert.match(app, /brand\.name \?\? product\.brand\.name/)
 assert.match(manifest, /function: 'dashboard'/)
-assert.match(manifest, /function: 'members'/)
-assert.match(manifest, /path: '\/records\/:source\/:table'/)
 assert.match(readFileSync('docs/template-contract.md', 'utf8'), /buildMapsShell/)

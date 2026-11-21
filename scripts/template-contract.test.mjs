@@ -13,7 +13,6 @@ const organizationId = '01900000-0000-7000-8000-000000000002'
 const config = parseLatteRuntimeConfig({
   paneBaseUrl: '/pane',
   expectedApplicationId: applicationId,
-  expectedOrganizationId: organizationId,
   expectedOrigin: 'https://example.test',
 })
 
@@ -86,7 +85,7 @@ for (const rejectedBaseUrl of [
 }
 assert.throws(
   () => parseLatteRuntimeConfig({ ...config, expectedOrganizationId: 'not-a-uuid' }),
-  /must be a UUID/,
+  /Unknown Latte runtime configuration/,
 )
 
 const session = {

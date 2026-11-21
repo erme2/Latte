@@ -172,7 +172,6 @@ export function parseLatteRuntimeConfig(value: unknown): LatteRuntimeConfig {
   const allowed = new Set([
     'paneBaseUrl',
     'expectedApplicationId',
-    'expectedOrganizationId',
     'expectedOrigin',
     'adminOnly',
   ])
@@ -188,7 +187,6 @@ export function parseLatteRuntimeConfig(value: unknown): LatteRuntimeConfig {
   return {
     paneBaseUrl: paneBaseUrl(config),
     expectedApplicationId: expectedUuid(config, 'expectedApplicationId'),
-    expectedOrganizationId: expectedUuid(config, 'expectedOrganizationId'),
     expectedOrigin: origin,
     ...(adminOnlySettings ? { adminOnly: adminOnlySettings } : {}),
   }

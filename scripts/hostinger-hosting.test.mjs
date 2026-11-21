@@ -102,7 +102,6 @@ try {
 assert.equal(hostingerConfig.paneBaseUrl, 'https://pane.erme2.com');
 assert.equal(hostingerConfig.expectedOrigin, 'https://latte.erme2.com');
 assert.equal(typeof hostingerConfig.expectedApplicationId, 'string');
-assert.equal(typeof hostingerConfig.expectedOrganizationId, 'string');
 
 assert.match(docs, /https:\/\/latte\.erme2\.com/);
 assert.match(docs, /https:\/\/pane\.erme2\.com/);

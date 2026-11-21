@@ -18,7 +18,6 @@ export type LatteAdminOnlyConfig = {
 export type LatteRuntimeConfig = {
   paneBaseUrl: string
   expectedApplicationId: string
-  expectedOrganizationId: string
   expectedOrigin: string
   adminOnly?: LatteAdminOnlyConfig
 }
