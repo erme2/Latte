@@ -29,6 +29,14 @@ export {
 } from './errors.js'
 export type { PaneAccessErrorCode, PaneAccessFailure } from './errors.js'
 export { assertBrowserOrigin, loadLatteRuntimeConfig, parseLatteRuntimeConfig } from './config.js'
+export { createInvitationsService } from './invitations.js'
+export type {
+  InvitationCreated,
+  InvitationKind,
+  InvitationResource,
+  InvitationsService,
+  InvitationStatus,
+} from './invitations.js'
 export {
   buildMapsShell,
   createMapsService,
