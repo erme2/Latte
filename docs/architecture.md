@@ -32,7 +32,7 @@ Latte is responsible for:
   organization;
 - routing, navigation and role-aware pages;
 - showing Pane errors as safe, fixed messages;
-- the organization-administration screens for members and invitations.
+- the screens for members and invitations.
 
 Latte is not responsible for, and must never take on:
 
@@ -184,14 +184,18 @@ sequenceDiagram
 
 ## Data and user flows
 
-### Organization administration (Current)
+### Members and invitations (Current)
 
-`/organization` (administrators only) lists memberships and invitations through
-`createOrganizationAdministrationService`. Every write first re-reads the record to get Pane's
-current `ETag`, sends it in `If-Match`, then reloads both lists. Failures are shown through
-`actionFailureMessage` (`version_conflict`, `operation_conflict`, `permission_denied`,
-`validation_failed`, `rate_limited`, or a generic message). New and resent invitations show the
-delivery URL once, with a copy button.
+`/members` (administrators only, shown while the install's `members` function is on) invites an
+administrator or a user and lists both kinds of invitation through `createInvitationsService`, which
+calls Pane's installation routes (`/installation/pane-admin-invitations` and
+`/installation/user-invitations`). A new invitation shows its delivery URL once, with a copy button.
+Pane sends an invitation's `ETag` only when it is created, so only invitations created in the open page
+can be revoked (`If-Match`). Failures are shown as fixed messages (`operation_conflict`,
+`validation_failed`, `rate_limited`, or a generic one).
+
+Not built yet, because Pane has no route for them: a members list with roles, and revoking an
+invitation read from a list (it needs an `ETag` in the list or a read route).
 
 ### Generic rows (removed)
 

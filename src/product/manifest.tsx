@@ -1,4 +1,5 @@
 import { defineLatteProduct } from './contract'
+import { Members } from './members/Members'
 import { Connection, Dashboard, Forbidden, NotFound } from './pages'
 import { createServices, type ProductServices } from './services'
 
@@ -16,6 +17,13 @@ export const product = defineLatteProduct<ProductServices>({
       path: '/dashboard',
       component: Dashboard,
       function: 'dashboard',
+    },
+    {
+      id: 'members',
+      path: '/members',
+      component: Members,
+      roles: ['admin'],
+      function: 'members',
     },
     {
       id: 'connection',
