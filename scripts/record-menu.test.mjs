@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { isMapName } from '../packages/latte-core/dist/index.js'
 
 // The static record menu (Latte#80): a fixed list in Latte code, no Pane menu route.
 const manifest = readFileSync('src/product/manifest.tsx', 'utf8')

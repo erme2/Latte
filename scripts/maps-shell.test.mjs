@@ -1,9 +1,9 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import axios from 'axios'
 import {
   buildMapsShell,
   createMapsService,
+  createPaneClient,
   mapFunctionKeys,
   mapsRecordPath,
 } from '../packages/latte-core/dist/index.js'
@@ -64,21 +64,21 @@ const tableMap = {
   },
 }
 const calls = []
-const pane = axios.create({
-  adapter: async (request) => {
+// The real Pane client: its base URL already ends in /api/v1, so maps paths are relative to it.
+const pane = createPaneClient({ ...config, paneBaseUrl: 'https://pane.example.test' })
+pane.defaults.adapter = async (request) => {
     calls.push([request.method, request.url])
     const ok = (data, etag) => ({ data, status: 200, statusText: 'OK', headers: { etag }, config: request })
 
-    if (request.url === `/api/v1/maps`) return ok(installs.sweegly, '"maps-4"')
-    if (request.url === `/api/v1/maps/app/products`) {
+    if (request.url === '/maps') return ok(installs.sweegly, '"maps-4"')
+    if (request.url === '/maps/app/products') {
       return ok({ data: tableMap, meta: { request_id: 'r' } }, '"table-2"')
     }
     throw Object.assign(new Error('Not found'), {
       isAxiosError: true,
       response: { status: 404, data: { error: { code: 'resource_not_found' } } },
     })
-  },
-})
+}
 const maps = createMapsService(pane, config)
 
 const bootstrap = await maps.getMaps()
@@ -92,9 +92,9 @@ for (const [source, table] of [['app', 'Products'], ['app', '../maps'], ['', 'pr
   await assert.rejects(maps.getTableMap(source, table), /stable map names/)
 }
 assert.deepEqual(calls, [
-  ['get', `/api/v1/maps`],
-  ['get', `/api/v1/maps/app/products`],
-  ['get', `/api/v1/maps/app/secrets`],
+  ['get', '/maps'],
+  ['get', '/maps/app/products'],
+  ['get', '/maps/app/secrets'],
 ])
 
 // The same routes serve both installs: nothing below changes per install.

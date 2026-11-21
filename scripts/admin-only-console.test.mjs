@@ -9,7 +9,6 @@ import {
 } from '../packages/latte-core/dist/index.js'
 
 const applicationId = '01900000-0000-7000-8000-000000000001'
-const organizationId = '01900000-0000-7000-8000-000000000002'
 const baseConfig = {
   paneBaseUrl: '/pane',
   expectedApplicationId: applicationId,

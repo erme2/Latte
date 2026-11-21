@@ -91,11 +91,11 @@ export function isMapName(value: unknown): value is string {
   return typeof value === 'string' && mapNamePattern.test(value)
 }
 
-export function createMapsService(pane: AxiosInstance, config: LatteRuntimeConfig) {
+export function createMapsService(pane: AxiosInstance, _config: LatteRuntimeConfig) {
   return {
     async getMaps(): Promise<VersionedItemResponse<MapsResource>> {
       const response = await pane
-        .get<ItemResponse<MapsResource>>('/api/v1/maps')
+        .get<ItemResponse<MapsResource>>('/maps')
         .catch(rejectPaneAccessFailure)
       return versioned(response)
     },
@@ -107,7 +107,7 @@ export function createMapsService(pane: AxiosInstance, config: LatteRuntimeConfi
       }
 
       const response = await pane
-        .get<ItemResponse<TableMapResource>>(`/api/v1/maps/${source}/${table}`)
+        .get<ItemResponse<TableMapResource>>(`/maps/${source}/${table}`)
         .catch(rejectPaneAccessFailure)
       return versioned(response)
     },
