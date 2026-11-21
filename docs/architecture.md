@@ -2,14 +2,14 @@
 
 This document explains how Latte is built and where its responsibilities end. Use it to work out
 where a change belongs and which contracts it must keep. For the product and security contract
-shared by Pane, Latte and Burro, see [product architecture](product-architecture.md); this document
+shared by Pane, Latte and the product apps, see [product architecture](product-architecture.md); this document
 links to it instead of repeating it. Pane's side is in
 [Pane architecture](https://github.com/erme2/Pane/blob/main/docs/architecture.md) and the
 [Pane API v1 contract](https://github.com/erme2/Pane/blob/main/docs/api-v1.md).
 
-"Burro" in older tickets meant this repository before the rename. Burro is now the future
-Pane-administrator console that will be created from Latte (Latte#34 to Latte#36). It has no code
-yet and will get its own document when it does.
+"Burro" in older tickets meant this repository before the rename. The separate Burro console and
+the organization model are retired in the MVP roadmap (owner decisions of 2026-11-18): Latte is
+the admin frontend over Pane's CRUD route, with the same login as the product apps.
 
 Each statement is labelled:
 
@@ -21,27 +21,25 @@ Each statement is labelled:
 
 **Current.** Latte is a browser-only React and TypeScript application, built with Vite and served
 as static files. It authenticates through Pane and uses Pane as its only data-access layer. Each
-deployment is tied to one application registration and one organization in one Pane installation.
+deployment is tied to one application registration in one Pane installation. There are no
+organizations.
 
 Latte is responsible for:
 
 - loading and checking its public runtime configuration (`/latte-config.json`);
 - the browser side of sign-in, invitation links, callbacks, session expiry and sign-out;
 - calling Pane's `/api/v1` with cookies and the CSRF header;
-- checking that the session Pane returns belongs to this deployment's application and
-  organization;
+- checking that the session Pane returns belongs to this deployment's application;
 - routing, navigation and role-aware pages;
 - showing Pane errors as safe, fixed messages;
 - the screens for members and invitations.
 
 Latte is not responsible for, and must never take on:
 
-- authentication, OAuth state, sessions, or choosing an application or organization (Pane does
-  these);
+- authentication, OAuth state, sessions, or choosing an application (Pane does these);
 - authorization. Hiding a route or button only helps usability: Pane checks every request;
 - database credentials or direct database connections. Latte never receives or holds them;
-- secrets of any kind. Everything in the browser bundle and in `latte-config.json` is public;
-- listing, switching to or revealing any organization other than its own.
+- secrets of any kind. Everything in the browser bundle and in `latte-config.json` is public.
 
 ## Structure
 
@@ -74,11 +72,11 @@ it only through its package name, the same boundary derived apps use.
 | `src/config.ts` | `parseLatteRuntimeConfig`, `loadLatteRuntimeConfig`, `assertBrowserOrigin`: strict config validation, rejecting unknown keys |
 | `src/client.ts` | `createPaneClient`: the axios client (`withCredentials`, `XSRF-TOKEN` to `X-XSRF-TOKEN`, Pane access errors normalized) |
 | `src/auth.ts` | `createAuthService` (session, login intent, single-flight callback, logout), `resolveInitialAuthentication`, invitation token checks, `validateAuthRedirectUrl`, sign-in failure messages |
-| `src/session.ts` | `assertLatteSession` (mode, application, organization and statuses), `hasOrganizationRole`, admin-only redirects |
+| `src/session.ts` | `assertLatteSession` (mode, application and status), `hasUserRole`, admin-only redirects |
 | `src/errors.ts` | `PaneAccessError`, `paneAccessFailure`, `paneErrorCode`, `paneErrorStatus`, `rejectPaneAccessFailure` |
 | `src/versioned.ts` | `versionedItemResponse`: pairs an item document with its required `ETag` |
 | `src/release.ts` | `loadLatteRelease` and labels for the deployed version badge |
-| `src/types.ts` | `LatteRuntimeConfig`, `LatteSession`, resource and response shapes, `organizationRoles` |
+| `src/types.ts` | `LatteRuntimeConfig`, `LatteSession`, resource and response shapes, `userRoles` |
 
 ### Starter application (`src/`)
 
@@ -101,14 +99,12 @@ What a derived application copies and owns.
 
 - `packages/latte-core` must not import from `src/`, React, or any product code.
 - Product code under `src/product/` must not change or bypass package authentication, session,
-  organization validation or Pane client internals. Add product behaviour through the manifest and
+  validation or Pane client internals. Add product behaviour through the manifest and
   `createServices`.
-- Every organization-scoped Pane path is built with `createOrganizationRouter` (or a service built
-  on it). Call sites never pass an organization ID.
 - Pane calls go through the single client from `createPaneClient`. Don't create other axios
   instances or use `fetch` against Pane.
-- `latte-config.json` holds assertions only. Its application and organization UUIDs are checked
-  against Pane's session; they never select anything on the server.
+- `latte-config.json` holds assertions only. Its application UUID is checked against Pane's
+  session; it never selects anything on the server.
 
 ## Runtime, routing and state
 
@@ -116,8 +112,8 @@ What a derived application copies and owns.
 
 - **Start-up.** `src/main.tsx` fetches `/latte-config.json` (`no-store`), validates it, and stops
   with "Application configuration error" if it is invalid or the page is served from another
-  origin than `expectedOrigin`. `createLatteRuntime` then builds, once, the Pane client, the
-  organization router, the row service, the auth service and the product services.
+  origin than `expectedOrigin`. `createLatteRuntime` then builds, once, the Pane client, the maps
+  service, the auth service and the product services.
 - **Routing.** There is no router library. `App` resolves `window.location.pathname` against
   `product.routes` with `resolveProductRoute` on each render. Patterns use whole-segment
   parameters (`/connections/:connectionId`); values are decoded into `context.params`. Unmatched
@@ -126,7 +122,7 @@ What a derived application copies and owns.
   app. `defineLatteProduct` rejects duplicate routes, a `defaultPath` with no route, and navigation
   pointing at an undeclared route.
 - **State.** No global store and no client cache. Sign-in state lives in `useLatteAuthentication`.
-  Each feature keeps its own state in a hook (for example `useOrganizationAdministration`), and
+  Each feature keeps its own state in a hook (for example the members hook), and
   re-reads from Pane after each change instead of updating local copies. Nothing is kept in
   `localStorage` or `sessionStorage`, and invitation tokens are never stored.
 - **Configuration sources.** At build time: `VITE_PANE_PROXY_*` in `.env` (host `npm run dev`
@@ -158,11 +154,10 @@ sequenceDiagram
   W-->>B: callback with code and state
   B->>P: POST /auth/callback {code, state}
   P-->>B: Latte session
-  B->>B: assertLatteSession (application, organization, statuses)
+  B->>B: assertLatteSession (application, status)
 ```
 
-- Pane owns OAuth state, identity, the session cookie and the application and organization
-  binding. Latte forwards `code` and `state` without reading them.
+- Pane owns OAuth state, identity, the session cookie and the application binding. Latte forwards `code` and `state` without reading them.
 - Every redirect URL Pane returns (login and logout) must be HTTPS on a host in the manifest's
   `authenticationHosts`, checked by `validateAuthRedirectUrl`.
 - The callback exchange is single-flight per `code` and `state`, so React's development effect
@@ -171,16 +166,15 @@ sequenceDiagram
 - CSRF: the Pane client sends Pane's `XSRF-TOKEN` cookie back as `X-XSRF-TOKEN` on mutating
   requests.
 - While signed in, `useLatteAuthentication` adds an interceptor: a `401` session error sends the
-  user to sign in again, and a Pane access failure (`application_not_allowed`,
-  `organization_context_mismatch`, `organization_inactive`, `membership_required`) returns the app
-  to its status screen with a fixed message.
+  user to sign in again, and a Pane access failure (for example `application_not_allowed`) returns the app to its status screen with
+  a fixed message.
 - Admin-only consoles (`adminOnly` in config) send non-administrators to `productAppUrl`, and with
   `loginUrl` send signed-out visitors to that page. Pane still enforces admin-only actions; see
   [admin-only console mode](template-contract.md#admin-only-console-mode).
 - Trust boundary: the browser is untrusted. Pane's responses are trusted for identity and
   authorization; config values are only expectations that the session must match. Latte shows
-  only messages chosen from Pane's `error.code`, never server details, target emails,
-  organization IDs or token metadata.
+  only messages chosen from Pane's `error.code`, never server details, target emails or
+  token metadata.
 
 ## Data and user flows
 
@@ -197,37 +191,28 @@ can be revoked (`If-Match`). Failures are shown as fixed messages (`operation_co
 Not built yet, because Pane has no route for them: a members list with roles, and revoking an
 invitation read from a list (it needs an `ETag` in the list or a read route).
 
-### Generic rows (removed)
+### Records (Target, not implemented)
 
-The generic row service (`crud.ts`) and the data service (`data.ts`) were removed with the organization model.
-Record views return with the `/crud` route (Latte#80).
+The record list and edit views are not on `main`. The generic row and data services were removed
+with the organization model, and the menu scaffolding (`recordMenu` in the manifest, hidden while
+empty) is all that is there. Latte#80 builds the views on Pane's Story/Action/Mapper CRUD route
+(`GET`/`POST /crud/{subject}`, `GET`/`PUT`/`DELETE /crud/{subject}/{key}`), the one CRUD route
+(owner decision of 2026-11-17), from a static menu: a fixed list in Latte code with entries for
+system tables, maps and the Sweegly data tables. Pane decides who may read and write; Latte shows
+the result or a fixed error message. The response envelope of that route and the mapping from a
+map's `source` and `table` to a `/crud` subject are open (Latte#80).
 
-### Shell, connections, schema discovery and CRUD screens
+### Shell and views drawn from the maps
 
 The shell is current. Latte builds its menu, enabled functions and branding from Pane's maps
-bootstrap, `GET /organizations/{organization}/maps` (Pane#154, closed), in Latte#69, now on `main`.
+bootstrap, `GET /api/v1/maps` (Pane#154, closed), through `src/shell/useMapsShell.ts`. Target:
+Latte#81 draws the dynamic menu and the list and edit views from each table map's `ui` part
+(`GET /api/v1/maps/{source}/{table}`), and Latte#71 adds a maps editor for fields, validation and
+views. In the MVP Latte edits maps and data, never tables: migrations are the source of truth.
 
-Connections, schema discovery and record screens are Target, not implemented. Latte has only
-placeholders for connections: the `Connection` page in `src/product/pages.tsx`, the
-`/connections/:connectionId` route in `src/product/manifest.tsx`, and `connections.list()` in
-`src/product/services.ts`, which no page calls. There is no UI for switching connections, browsing
-tables, columns, keys or relationships, or editing rows.
-
-The intended design for records, from the Pane maps decision:
-
-- List and edit views for records come from each map's `ui` part, through
-  `GET /organizations/{organization}/maps/{source}/{table}`, in Latte#70.
-- Row CRUD moves to Pane's `/organizations/{organization}/data/{source}/tables/{table}/rows`
-  family, addressed by stable names from the maps, with Pane enforcing each table's access policy
-  and row conditions. The earlier reusable membership-owned CRUD plan (Latte#33) is superseded by
-  Latte#70 with user-to-data checks in Pane#156.
-- Connection, catalog, description and grant administration was Latte#32 (closed). None of that UI
-  is on `main`; where it fits next to the maps model is open.
-
-Requests must keep the same shape as today: the page calls a service, the service calls Pane
-through the shared client and the organization router, Pane decides, and Latte shows the result or
-a fixed error message. Latte never sends raw SQL, client-chosen column names outside the map, or
-row ownership.
+Requests keep the same shape as today: the page calls a service, the service calls Pane through
+the shared client, Pane decides, and Latte shows the result or a fixed error message. Latte never
+sends raw SQL, client-chosen column names outside the map, or row ownership.
 
 ### Loading, errors and safety (Current)
 
@@ -238,18 +223,18 @@ row ownership.
 - Destructive membership actions are limited in the UI: the last active administrator can't be
   demoted or suspended, and only pending invitations can be revoked. Pane enforces the same rules.
 - **Open:** there is no confirmation step yet for suspend, revoke or (future) row delete. Before
-  row delete ships, the CRUD work (Latte#70) has to decide on confirmation and undo
-  behaviour. Pane soft-deletes rows.
+  row delete ships, the CRUD work (Latte#80) has to decide on confirmation and undo
+  behaviour.
 
 ## Current and target: known differences
 
 | Area | Current | Target |
 | --- | --- | --- |
 | Shell, menu and pages | Built from Pane maps (Latte#69, on `main`) | Unchanged |
-| Record screens | None | List and edit views from the maps' `ui` part (Latte#70) |
-| Row access | `createRowService` on `/connections/{id}/tables/{id}/rows`, unused | `/data/{source}/tables/{table}/rows` by stable name (Latte#70, Pane#156) |
-| Connections | Placeholder route, page and unused `connections.list()` | **Open**, see Latte#32 (closed) |
-| Burro console | Not present | Separate application created from Latte (Latte#34 to Latte#36) |
+| Record screens | None (hidden menu scaffolding only) | List, create, edit and delete through `/crud` (Latte#80) |
+| Menu and views | Menu from maps; no record views | Dynamic menu and views drawn from the maps (Latte#81) |
+| Maps editor | None | Edits fields, validation and views (Latte#71) |
+| Connections | Placeholder `/connections/:connectionId` route and page | **Open**: no managed connections in the MVP; likely removed |
 | Navigation | Full page loads through `<a href>` | **Open**: no decision on client-side navigation |
 | Caching | None; re-read after every write | **Open** |
 
@@ -271,7 +256,7 @@ Update this document when any of these land.
 the package; CI (`.github/workflows/pr-tests.yml`) runs `npm test`, `npm run lint` and
 `npm run build`.
 
-- Package behaviour (config, auth, sessions, errors, rows, administration): tests against the built
+- Package behaviour (config, auth, sessions, errors, invitations, maps): tests against the built
   package, such as `scripts/auth-service.test.mjs`.
 - Shell lifecycle: `scripts/auth-lifecycle.test.mjs` runs `src/auth/lifecycle.mjs` with a fake
   browser.
@@ -289,7 +274,7 @@ component test runner when the maps-driven screens arrive.
 
 - [ ] Is it product behaviour (manifest, services, `src/product/`) or a shared Pane contract
       (`packages/latte-core`)? Put it in one place only.
-- [ ] Does every Pane path go through the shared client and `createOrganizationRouter`?
+- [ ] Does every Pane path go through the shared client?
 - [ ] Is nothing secret added to the bundle, `latte-config.json` or storage?
 - [ ] Does it rely on Pane for authorization, using roles only to hide UI?
 - [ ] Are writes sent with the `ETag` from a fresh read, and are conflicts shown?

@@ -18,14 +18,14 @@ a shared dependency.
 - loading and validating public deployment configuration;
 - the credentialed Pane `/api/v1` HTTP client and CSRF behavior;
 - login intents, callbacks, session loading, and logout;
-- verification that Pane's trusted session application and organization match
-  the deployment's public expectations;
-- organization role helpers and generic Pane row CRUD services;
-- fixed-organization route generation and presentation-safe Pane access errors.
+- verification that Pane's trusted session application matches the
+  deployment's public expectation;
+- user role helpers, the maps and invitations services, and presentation-safe
+  Pane access errors.
 
-Row create and update operations send Pane's exact `{ "values": ... }` write
-shape. Item reads and writes return both the response document and its strong
-`ETag`; callers pass that validator back for update and delete preconditions.
+Item reads and writes of versioned resources (maps, invitations) return both the
+response document and its strong `ETag`; callers pass that validator back for
+update and delete preconditions.
 
 The derived application owns `src/product/manifest.tsx`, its page components,
 styles, assets, product API services, and tests. The typed manifest is the
@@ -33,20 +33,19 @@ stable extension point for branding, authentication redirect hosts, routes,
 navigation, pages, role-aware visibility, and an explicit `createServices`
 factory. Latte calls that factory once after validated configuration and Pane
 client creation, then injects its inferred service type into every page.
-Normal product work must not edit package authentication, session, tenant
-validation, or Pane client internals.
+Normal product work must not edit package authentication, session, or Pane
+client internals.
 
 The app shell's sign-in lifecycle (startup, invitation links, expired sessions,
 sign out and retry) lives in `src/auth/`: `lifecycle.mjs` holds the steps and is
 tested without React, and `useLatteAuthentication` wires it into `App.tsx`.
 Product pages and their state live under `src/product/`, one folder per feature
-(for example `src/product/organization/`).
+(for example `src/product/members/`).
 
 ## Shell from Pane maps
 
 One Latte build serves every install: the menu, the switchable functions and
-the branding come from Pane's maps (`GET /organizations/{organization_id}/maps`,
-Pane#154) instead of code. After sign-in, `src/shell/useMapsShell.ts` loads them
+the branding come from Pane's maps (`GET /api/v1/maps`, Pane#154) instead of code. After sign-in, `src/shell/useMapsShell.ts` loads them
 through `platform.maps` (`createMapsService`) and `buildMapsShell` from
 `@erme2/latte` turns them into:
 
@@ -70,31 +69,14 @@ names. Hiding is a usability boundary: Pane still decides what each caller may
 read and write. `scripts/fixtures/maps-install-*.json` holds two installs used
 by the tests.
 
-### Record views
+### Record views (not built yet)
 
-With `records` on, a table item opens three routes from the manifest:
-`/records/:source/:table` lists rows (`src/product/records/RecordList.tsx`),
-`/records/:source/:table/new` creates one and `/records/:source/:table/:rowKey`
-edits or deletes one (`RecordEditor.tsx`). The `new` route is declared before
-the edit route so it wins. Both read the table map, then talk to Pane's `/data`
-routes (Pane#156) through `platform.data` (`createDataService`), which checks
-map names, row keys and the sort before any request and sends the row's ETag in
-`If-Match` on update and delete.
-
-What the screens show comes from the map's `ui` part, through helpers in
-`@erme2/latte`: `recordListColumns` (`ui.list.columns`, else the first five
-visible fields), `recordListSort` (`ui.list.default_sort` when that field is
-`sortable`), `recordFormFields` (no computed fields, and no primary key on
-edit), `recordFieldWidget` (a known `ui.widget`, else one for the field type),
-and `recordFieldLabel`. Fields with `ui.hidden` and password fields are never
-listed. The map's `min`, `max` and `email` hints are checked in the browser;
-Pane still validates every write. `recordWriteFailure` turns Pane's answers
-into messages: `422 validation_failed` with `details.fields` marks each field,
-`403` says the change isn't allowed, `404` says the record is gone and `412`
-asks to reload. Filters wait for named queries (Pane#160), and the table maps
-don't expose the access policy yet, so write actions show for everyone and a
-denied write is reported when Pane refuses it. `scripts/fixtures/data-products-*.json`
-holds the contract fixtures the tests use.
+The record list and edit views are not on `main`. The manifest's `recordMenu` is
+the fixed menu for them: entries open `/records/{source}/{table}` while
+`records` is on, and the menu stays empty until the views exist. Latte#80
+builds list, create, edit and delete on Pane's Story/Action/Mapper CRUD route
+(`/crud/{subject}`), and Latte#81 draws the views from each table map's `ui`
+part. Pane still validates every write and decides who may change what.
 
 Route patterns use named whole-segment parameters such as
 `/connections/:connectionId`. Page context receives decoded values in
@@ -117,7 +99,7 @@ Deployments serve `/latte-config.json` before React starts:
 }
 ```
 
-These four fields are required; `adminOnly` (below) is optional. Unknown fields, invalid UUIDs, non-canonical origins,
+These three fields are required; `adminOnly` (below) is optional. Unknown fields, invalid UUIDs, non-canonical origins,
 non-loopback HTTP origins, and unusable Pane URLs stop startup with a configuration error. Configuration
 is intentionally public and must contain no passwords, API keys, connection
 credentials, WorkOS secrets, or invitation tokens.
@@ -137,11 +119,11 @@ console at `https://admin.dev.sweegly.co.uk` next to the product app at
 }
 ```
 
-After Pane returns the session, a membership whose role is not
-`organization_administrator` is sent to `productAppUrl` with
-`window.location.replace`, before any console screen renders. Organization
-administrators use the console as usual. Without `adminOnly`, every active
-member can use the console, as before.
+After Pane returns the session, a user whose role is not
+`admin` is sent to `productAppUrl` with
+`window.location.replace`, before any console screen renders. Administrators
+use the console as usual. Without `adminOnly`, every signed-in user can use the
+console, as before.
 
 A signed-out visitor starts their own login from the console, unless
 `adminOnly.loginUrl` is set. Then the console sends them to `loginUrl` with
@@ -167,21 +149,12 @@ segments, query, or fragment. Absolute bases are canonical HTTPS URLs, with
 HTTP limited to loopback development hosts.
 
 These values are assertions, not authority. `expectedOrigin` is compared with
-the browser's actual origin. Application and organization UUIDs are compared
+the browser's actual origin. The application UUID is compared
 with Pane's `GET /api/v1/session` response. Runtime configuration never selects
-an application or organization: Pane resolves the application from trusted
-Origin/session state and fixes the organization server-side.
+an application: Pane resolves the application from trusted Origin/session state.
 
-Product services receive `platform.organization`. Every organization-scoped
-Pane request must use `platform.organization.path(...)`; it inserts the fixed
-deployment organization and accepts only the remaining resource segments.
-Route, query, form, and browser-storage values therefore cannot select or
-override an organization. Pane still treats the client value as an assertion
-and rejects modified, stale, mismatched, or revoked deployment context.
-
-The shared Pane client and row service normalize Pane's fixed-organization 403
-codes for application mismatch/revocation, organization mismatch/inactivity,
-and missing or inactive membership into `PaneAccessError`. Use
+The shared Pane client normalizes Pane's 403 codes for application
+mismatch or revocation into `PaneAccessError`. Use
 `paneAccessFailure(error)` to render that state without exposing the
 server-provided message. Other failures remain the product's responsibility,
 including ordinary role permission denials.
@@ -203,13 +176,11 @@ of through Vite's proxy.
    npm range (initially `"^0.1.0"`), remove the root `workspaces` entry, delete
    the copied `packages/latte-core` directory, and run `npm install`. Confirm
    `npm ls @erme2/latte` resolves from npm rather than a workspace link.
-4. Register each deployment origin, redirect URI, fixed organization, and
-   application in Pane. Copy the resulting public UUID expectations into the
-   deployment configuration.
+4. Register each deployment origin, redirect URI and application in Pane. Copy
+   the resulting public application UUID into the deployment configuration.
 5. Run `npm test`, `npm run lint`, and `npm run build` before deployment.
 
-Derived repositories do not retain Burro identity or installation-administrator
-behavior. Burro is a separate Latte-derived product with its own manifest.
+Derived repositories keep their own manifest, branding and product pages.
 
 ## Receiving Latte updates
 

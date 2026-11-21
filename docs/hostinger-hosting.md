@@ -33,8 +33,8 @@ WORKOS_RETURN_TO=https://latte.erme2.com
 ## Runtime configuration
 
 Latte deployments serve `/latte-config.json` before React starts. Start from
-`docs/examples/latte-config.hostinger.json`, replace the application and
-organization UUIDs with the public values registered in Pane, then deploy it as
+`docs/examples/latte-config.hostinger.json`, replace the application
+UUID with the public value registered in Pane, then deploy it as
 `latte-config.json`.
 
 Production Latte configuration for the alpha should use:

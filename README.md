@@ -1,28 +1,30 @@
 # Latte
 
-Latte is the reusable React and TypeScript frontend template for
-organization-specific applications that authenticate through Pane and use Pane
-as their only data-access layer.
+Latte is the admin frontend over [Pane](https://github.com/erme2/Pane)'s REST API:
+a React and TypeScript application, built with Vite and served as static files.
+It signs in through Pane with the same login as the product apps (for example
+Sweegly) and uses Pane as its only data-access layer.
 
-Pane is an independently installable, multi-organization backend. It owns
-authentication, authorization, invitations, encrypted database connections,
-catalog discovery, descriptions, and data access. Each Latte-derived
-application is linked to one organization in one Pane installation and never
-connects directly to a managed database.
+What Latte offers (MVP roadmap, owner decisions of 2026-11-18):
 
-Pane supports one or more MySQL or MariaDB connections per organization,
-discovers table metadata through database system catalogs, and exposes
-controlled CRUD as its first capability, not its final scope.
+- **Invitations and members** for administrators and users (`/members`).
+- **Records**: list, create, edit and delete rows through Pane's Story/Action/Mapper
+  CRUD route, from a static menu (Latte#80).
+- **Views drawn from the maps**: the menu and the list and edit views come from the
+  maps Pane serves (Latte#81), and a **maps editor** edits the exposed fields, labels,
+  validation and views (Latte#71). Migrations stay the source of truth for table
+  structure; Latte edits maps and data, never tables.
 
-A new **Burro** application will be created from Latte as the private
-administration console for Pane administrators. See
-[Pane, Latte, and Burro Product Architecture](docs/product-architecture.md) for
-the agreed phase-one product and security boundaries.
+There are no organizations and no managed database connections: one Pane install
+serves one product, and Latte never connects to a database directly. Pane owns
+authentication, authorization and data access. See the
+[Pane, Latte and product architecture](docs/product-architecture.md) for the agreed
+boundaries.
 
 Latte is both a project starter and the home of the public, headless
 `@erme2/latte` package. Derived applications own their appearance and product
 pages while upgrading the package to receive shared authentication, Pane API,
-configuration, authorization-state, and CRUD fixes. See the
+configuration and authorization-state fixes. See the
 [template and extension contract](docs/template-contract.md).
 
 To find where a change belongs and which contracts it must keep, read the
@@ -69,8 +71,7 @@ WORKOS_RETURN_TO=https://latte.localhost
 ```
 
 Copy `public/latte-config.json` for each deployment and replace its example
-application UUID and organization UUID with the public values from the Pane
-registration. The committed local Docker example uses
+application UUID with the public value from the Pane registration. The committed local Docker example uses
 `expectedOrigin=https://latte.localhost`; if you run Vite directly at
 `http://localhost:5173`, change `expectedOrigin` to that exact origin before
 starting the app. The file contains assertions only and must never contain
@@ -78,7 +79,7 @@ secrets.
 
 To run an install as an admin-only console, add
 `"adminOnly": { "productAppUrl": "https://app.example.test/" }`: signed-in
-members who are not organization administrators are redirected to that product
+members who are not administrators are redirected to that product
 app instead of seeing the console. See
 [admin-only console mode](docs/template-contract.md#admin-only-console-mode).
 
@@ -92,7 +93,7 @@ npm run dev
 Open `http://localhost:5173`. Latte calls Pane through Vite's `/pane` proxy,
 loads `GET /api/v1/session`, creates a login intent when authentication is
 required, and forwards the WorkOS callback to Pane. Pane owns the application,
-organization, OAuth state, and authenticated session.
+OAuth state, and authenticated session.
 
 Pane owns server-side OAuth state validation. Latte forwards the callback state to Pane, and Pane rejects missing or mismatched state before completing login.
 
