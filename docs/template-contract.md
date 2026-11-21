@@ -58,8 +58,15 @@ through `platform.maps` (`createMapsService`) and `buildMapsShell` from
   with `function: '<key>'` in the manifest renders `notFoundPage` while that
   function is off, and before the maps have loaded or when they fail;
 - the brand, from the public settings `brand_name`, `brand_tagline` and
-  `brand_logo_url` (an HTTPS URL or a same-origin path). Missing values fall
-  back to the manifest's `brand` and `/latte-logo.svg`.
+  `brand_logo_url` (an HTTPS URL or a same-origin path, or an image setting's
+  stored `url`). Missing values fall back to the manifest's `brand` and
+  `/latte-logo.svg`.
+
+Administrators edit these settings on the `/settings` page (an always-on
+entry): `context.services.settings` lists Pane's settings and sets text, number
+and flag values, or uploads an image (PNG, JPEG or WebP, at most 2 MB, checked
+in the browser first). Every write sends `If-Match` with the version the page
+loaded. The header shows a change after the next page load.
 
 The manifest's `navigation` lists only always-on entries, such as the maps,
 menu and settings editors: they show next to the maps menu whatever the install

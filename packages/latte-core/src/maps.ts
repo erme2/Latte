@@ -159,7 +159,10 @@ function textSetting(settings: readonly MapPublicSetting[], key: string): string
 
 // A logo is an image URL the browser will load, so only HTTPS or same-origin paths are used.
 function logoSetting(settings: readonly MapPublicSetting[]): string | undefined {
-  const value = textSetting(settings, mapsBrandSettingKeys.logoUrl)
+  // An image setting stores `{path, url, mime, size}`; a text setting stores the URL itself.
+  const raw = settings.find((setting) => setting.key === mapsBrandSettingKeys.logoUrl)?.value
+  const stored = typeof raw === 'object' && raw !== null ? (raw as { url?: unknown }).url : raw
+  const value = typeof stored === 'string' && stored.trim() !== '' ? stored.trim() : undefined
   if (!value) return undefined
   if (value.startsWith('/') && !value.startsWith('//')) return value
   return value.startsWith('https://') ? value : undefined

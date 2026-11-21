@@ -65,6 +65,21 @@ export type {
   MapTableUi,
   TableMapResource,
 } from './maps.js'
+export {
+  createSettingsService,
+  settingEtag,
+  settingImage,
+  settingImageMaxBytes,
+  settingImageMimeTypes,
+  settingImageProblem,
+} from './settings.js'
+export type {
+  SettingAttributes,
+  SettingImage,
+  SettingResource,
+  SettingsService,
+  SettingType,
+} from './settings.js'
 export { adminOnlyLoginUrl, adminOnlyRedirectUrl, assertLatteSession, hasUserRole } from './session.js'
 export { organizationRoles, userRoles } from './types.js'
 export type { UserRole } from './types.js'
