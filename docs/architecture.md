@@ -92,7 +92,8 @@ What a derived application copies and owns.
 | `src/product/runtime.mjs` | Route pattern validation and matching (`validateRoutePattern`, `matchRoutePattern`, `resolveProductRoute`) |
 | `src/product/manifest.tsx` | The product manifest: brand, auth hosts, default path, routes, navigation, forbidden and not-found pages |
 | `src/product/services.ts` | `createServices`: product services built once from the platform context |
-| `src/product/pages.tsx` | Placeholder pages: `Dashboard`, `Connection`, `Forbidden`, `NotFound` |
+| `src/product/pages.tsx` | Placeholder pages: `Connection`, `Forbidden`, `NotFound` |
+| `src/product/dashboard/Dashboard.tsx` | Dashboard function: count and recent-record cards drawn from the maps' `ui.dashboard` (below) |
 | `src/ReleaseBadge.tsx` | "Built with Latte" link and deployed version |
 
 ### Invariants and forbidden dependencies
@@ -201,6 +202,18 @@ empty) is all that is there. Latte#80 builds the views on Pane's Story/Action/Ma
 system tables, maps and the Sweegly data tables. Pane decides who may read and write; Latte shows
 the result or a fixed error message. The response envelope of that route and the mapping from a
 map's `source` and `table` to a `/crud` subject are open (Latte#80).
+
+### Dashboard (Implemented, Latte#73)
+
+The dashboard is a switchable function (`dashboard`, with `members`; a function that is off has no route
+and no menu entry). Its cards come from a table's `ui.dashboard` in the maps, a Latte convention because
+Pane keeps `ui` open: `{count: boolean, recent: 1-10, sort: field, position: number}`. A card shows the
+row total (`pagination.total`) and/or the newest `recent` rows (by `sort`, descending; columns from
+`ui.list.columns`, first three). System tables never get a card, and a malformed config gives none.
+Rows are read with `createCrudService(...).list(table)`, a read-only `GET /crud/{subject}` that uses
+the table name as the subject and the route's envelope `{status, data, pagination: {page, limit, total}}`.
+Pane decides who may read; a card Pane refuses shows a fixed error message. Create, edit and delete on
+`/crud` belong to Latte#81.
 
 ### Shell and views drawn from the maps
 

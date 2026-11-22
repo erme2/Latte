@@ -3,20 +3,6 @@ import type { ProductServices } from './services'
 
 type PageProps = ProductPageProps<ProductServices>
 
-export function Dashboard({ context }: PageProps) {
-  return (
-    <section className="activity">
-      <div>
-        <h2>{context.session.data.application.attributes.name}</h2>
-        <p>
-          Signed in as {context.session.data.user.attributes.role === 'admin' ? 'administrator' : 'user'}.
-        </p>
-      </div>
-      
-    </section>
-  )
-}
-
 export function Connection({ context }: PageProps) {
   return <h2>Connection {context.params.connectionId}</h2>
 }
