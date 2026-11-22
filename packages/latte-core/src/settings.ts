@@ -25,7 +25,8 @@ export type SettingResource = { id: string; type: 'setting'; attributes: Setting
 export const settingImageMimeTypes = ['image/png', 'image/jpeg', 'image/webp'] as const
 export const settingImageMaxBytes = 2 * 1024 * 1024
 
-const keyPattern = /^[a-z][a-z0-9_]{0,63}$/
+// Pane's key grammar (AppSettings::KEY). Keys start with a letter, so a key is never a "." or ".." path segment.
+const keyPattern = /^[a-z][a-z0-9_.]{0,63}$/
 
 function assertKey(key: string): void {
   if (!keyPattern.test(key)) throw new Error('Settings are addressed by their declared key.')

@@ -81,7 +81,8 @@ function SettingRow({ setting, busy, onSet, onUpload, onProblem }: RowProps) {
         </div>
       ) : (
         <form className="row-actions" onSubmit={save}>
-          <input id={id} type={attributes.type === 'number' ? 'number' : 'text'} value={draft} maxLength={2000}
+          <input id={id} type={attributes.type === 'number' ? 'number' : 'text'}
+            step={attributes.type === 'number' ? 'any' : undefined} value={draft} maxLength={2000}
             onChange={(event) => setDraft(event.target.value)} />
           <button className="button" type="submit"
             disabled={busy || draft === String(attributes.value ?? '')}>Save</button>
