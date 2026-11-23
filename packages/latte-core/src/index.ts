@@ -37,10 +37,11 @@ export type {
   InvitationsService,
   InvitationStatus,
 } from './invitations.js'
-export { createCrudService } from './crud.js'
-export type { CrudList, CrudListQuery, CrudPagination, CrudRow, CrudService } from './crud.js'
+export { createCrudService, CrudValidationError } from './crud.js'
+export type { CrudFieldError, CrudList, CrudListQuery, CrudPagination, CrudRow, CrudService } from './crud.js'
 export {
   buildDashboardCards,
+  buildRecordView,
   buildMapsShell,
   createMapsService,
   dashboardRecentMax,
@@ -48,10 +49,14 @@ export {
   mapFunctionKeys,
   mapsBrandSettingKeys,
   mapsRecordPath,
+  recordFieldValue,
+  recordFormBody,
 } from './maps.js'
 export type {
   DashboardCard,
   MapTableDashboard,
+  RecordFormField,
+  RecordView,
   MapField,
   MapFieldUi,
   MapFieldValidation,

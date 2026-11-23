@@ -2,6 +2,7 @@ import { defineLatteProduct } from './contract'
 import { Members } from './members/Members'
 import { Settings } from './settings/Settings'
 import { Dashboard } from './dashboard/Dashboard'
+import { Records } from './records/Records'
 import { Connection, Forbidden, NotFound } from './pages'
 import { createServices, type ProductServices } from './services'
 
@@ -19,6 +20,12 @@ export const product = defineLatteProduct<ProductServices>({
       path: '/dashboard',
       component: Dashboard,
       function: 'dashboard',
+    },
+    {
+      id: 'records',
+      path: '/records/:source/:table',
+      component: Records,
+      function: 'records',
     },
     {
       id: 'members',

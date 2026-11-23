@@ -209,6 +209,128 @@ export function buildDashboardCards(tables: readonly MapTableSummary[]): Dashboa
     .map(({ position: _position, ...card }) => card)
 }
 
+export type RecordFormField = {
+  name: string
+  label: string
+  help: string | null
+  input: 'text' | 'email' | 'number' | 'checkbox' | 'textarea' | 'date' | 'password' | 'json'
+  /** For a `json` input: Pane's `array` type takes a native array, its `json` type a JSON string. */
+  wire: 'array' | 'json' | null
+  readOnly: boolean
+}
+
+export type RecordView = {
+  title: string
+  primaryKey: string | null
+  columns: { name: string; label: string; sortable: boolean }[]
+  sort: { name: string; order: 'asc' | 'desc' } | null
+  fields: RecordFormField[]
+}
+
+const listColumnsMax = 6
+
+/**
+ * The generic list and edit view of one table, from its map: the columns (`ui.list.columns`,
+ * else the first visible fields), the default sort (`ui.list.default_sort`, `-name` for descending)
+ * and the form fields with their input kind. Hidden and computed fields are left out of the
+ * form; the primary key is shown read-only on edit and left out on create (Pane assigns it).
+ */
+export function buildRecordView(table: TableMapResource['attributes']): RecordView {
+  const fields = table.fields.filter((field) => isMapName(field.name))
+  const visible = fields.filter((field) => field.ui?.hidden !== true)
+  const label = (field: MapField) => field.ui?.label?.trim() || field.name
+  const byName = new Map(fields.map((field) => [field.name, field]))
+
+  const configured = Array.isArray(table.ui?.list?.columns)
+    ? table.ui.list.columns.filter((name): name is string => typeof name === 'string' && byName.has(name))
+    : []
+  const columnFields = (configured.length > 0
+    ? configured.map((name) => byName.get(name) as MapField)
+    : visible.filter((field) => field.type !== 'password').slice(0, listColumnsMax))
+
+  const rawSort = typeof table.ui?.list?.default_sort === 'string' ? table.ui.list.default_sort : ''
+  const sortName = rawSort.startsWith('-') ? rawSort.slice(1) : rawSort
+  const sortField = byName.get(sortName)
+  const primary = fields.find((field) => field.primary) ?? null
+
+  const input = (field: MapField): RecordFormField['input'] => {
+    const widget = field.ui?.widget
+    if (widget === 'textarea') return 'textarea'
+    switch (field.type) {
+      case 'number': return 'number'
+      case 'boolean': return 'checkbox'
+      case 'text': return 'textarea'
+      case 'date': return 'date'
+      case 'password': return 'password'
+      case 'array':
+      case 'json': return 'json'
+      default: return field.format === 'email' || field.validations.some((rule) => rule.rule === 'email') ? 'email' : 'text'
+    }
+  }
+
+  return {
+    title: table.ui?.label?.trim() || table.table,
+    primaryKey: primary?.name ?? null,
+    columns: columnFields.map((field) => ({ name: field.name, label: label(field), sortable: field.sortable })),
+    sort: sortField ? { name: sortField.name, order: rawSort.startsWith('-') ? 'desc' : 'asc' } : null,
+    fields: visible
+      .filter((field) => !field.computed)
+      .map((field) => ({
+        name: field.name,
+        label: label(field),
+        help: typeof field.ui?.help === 'string' ? field.ui.help : null,
+        input: input(field),
+        wire: field.type === 'array' ? 'array' : field.type === 'json' ? 'json' : null,
+        readOnly: field.primary,
+      })),
+  }
+}
+
+// Pane serialises a date as `{date: 'YYYY-MM-DD HH:MM:SS.ffffff', timezone_type, timezone}`.
+function dateInputValue(value: unknown): string {
+  const raw = typeof value === 'object' && value !== null ? (value as { date?: unknown }).date : value
+  const match = typeof raw === 'string' ? /^\d{4}-\d{2}-\d{2}/.exec(raw) : null
+  return match ? match[0] : ''
+}
+
+/** The starting value of a form control for a field, from the row being edited (or none). */
+export function recordFieldValue(field: RecordFormField, row: Record<string, unknown> | null): string | boolean {
+  const value = row?.[field.name]
+  if (field.input === 'checkbox') return value === true || value === 1 || value === '1'
+  if (value === null || value === undefined) return ''
+  if (field.input === 'date') return dateInputValue(value)
+  // Pane already json_decodes a `json` value, so a string here is the JSON value itself: always encode it.
+  if (field.input === 'json') return JSON.stringify(value, null, 2)
+  return String(value)
+}
+
+/**
+ * The request body Pane expects from the form values. A JSON field that does not parse is a
+ * field error; a `json` field is sent as a JSON string and an `array` field as a native array.
+ */
+export function recordFormBody(
+  fields: readonly RecordFormField[],
+  values: Record<string, string | boolean>,
+): { body: Record<string, unknown>; errors: Record<string, string> } {
+  const body: Record<string, unknown> = {}
+  const errors: Record<string, string> = {}
+  for (const field of fields) {
+    if (field.readOnly) continue
+    const value = values[field.name]
+    if (field.input === 'checkbox') body[field.name] = value === true
+    else if (value === '') body[field.name] = null
+    else if (field.input === 'number') body[field.name] = Number(value)
+    else if (field.input === 'json') {
+      try {
+        const parsed: unknown = JSON.parse(String(value))
+        if (field.wire === 'array' && !Array.isArray(parsed)) errors[field.name] = 'Enter a JSON array.'
+        else body[field.name] = field.wire === 'array' ? parsed : JSON.stringify(parsed)
+      } catch { errors[field.name] = 'Enter valid JSON.' }
+    } else body[field.name] = value
+  }
+  return { body, errors }
+}
+
 function textSetting(settings: readonly MapPublicSetting[], key: string): string | undefined {
   const value = settings.find((setting) => setting.key === key)?.value
   return typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined
