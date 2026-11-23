@@ -1,7 +1,8 @@
 import { defineLatteProduct } from './contract'
 import { Members } from './members/Members'
 import { Settings } from './settings/Settings'
-import { Connection, Dashboard, Forbidden, NotFound } from './pages'
+import { Dashboard } from './dashboard/Dashboard'
+import { Connection, Forbidden, NotFound } from './pages'
 import { createServices, type ProductServices } from './services'
 
 export const product = defineLatteProduct<ProductServices>({

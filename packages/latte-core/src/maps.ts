@@ -30,8 +30,13 @@ export type MapTableUi = {
   label?: string
   description?: string
   list?: { columns?: string[]; default_sort?: string; [key: string]: unknown }
+  dashboard?: MapTableDashboard
   [key: string]: unknown
 }
+
+// A table's dashboard card (Latte convention in the table's `ui`; Pane keeps `ui` open):
+// `count` shows the row total, `recent` (1 to 10) lists that many rows ordered by `sort`, newest first (`recent` is ignored without a valid `sort`).
+export type MapTableDashboard = { count?: boolean; recent?: number; sort?: string; position?: number }
 
 export type MapFieldUi = {
   label?: string
@@ -150,6 +155,58 @@ export const mapsBrandSettingKeys = {
 
 export function mapsRecordPath(source: string, table: string): string {
   return `/records/${encodeURIComponent(source)}/${encodeURIComponent(table)}`
+}
+
+export type DashboardCard = {
+  source: string
+  table: string
+  label: string
+  count: boolean
+  recent: number
+  sort: string | null
+  columns: string[]
+}
+
+export const dashboardRecentMax = 10
+
+/**
+ * The dashboard's cards, from the `ui.dashboard` part of the tables the caller can see:
+ * ordered by `position` then label. A table with neither a count nor recent rows, or
+ * a malformed config, gets no card. System tables never do.
+ */
+export function buildDashboardCards(tables: readonly MapTableSummary[]): DashboardCard[] {
+  const cards: (DashboardCard & { position: number })[] = []
+
+  for (const table of tables) {
+    const config = table.ui?.dashboard
+    if (table.system || typeof config !== 'object' || config === null) continue
+    if (!isMapName(table.source) || !isMapName(table.table)) continue
+
+    const count = config.count === true
+    const sort = isMapName(config.sort) ? config.sort : null
+    // Recent rows need a sort to be newest first (Pane's default order is oldest first), so without one the card keeps its count only.
+    const recent = sort !== null && Number.isInteger(config.recent) ? Math.min(Math.max(config.recent as number, 0), dashboardRecentMax) : 0
+    if (!count && recent === 0) continue
+
+    const columns = Array.isArray(table.ui?.list?.columns)
+      ? table.ui.list.columns.filter((name): name is string => isMapName(name)).slice(0, 3)
+      : []
+
+    cards.push({
+      source: table.source,
+      table: table.table,
+      label: table.ui?.label?.trim() || table.table,
+      count,
+      recent,
+      sort,
+      columns,
+      position: typeof config.position === 'number' && Number.isFinite(config.position) ? config.position : 0,
+    })
+  }
+
+  return cards
+    .sort((left, right) => left.position - right.position || left.label.localeCompare(right.label))
+    .map(({ position: _position, ...card }) => card)
 }
 
 function textSetting(settings: readonly MapPublicSetting[], key: string): string | undefined {
