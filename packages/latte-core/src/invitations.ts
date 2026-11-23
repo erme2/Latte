@@ -94,12 +94,15 @@ export function createInvitationsService(pane: AxiosInstance) {
     },
 
     // Pane's resend route exists for user invitations only. It issues a fresh link on the same invitation and emails it.
-    async resend(invitationId: string): Promise<InvitationCreated['document']> {
+    // Pane rotates the invitation's version, so the new ETag (when sent) replaces the one from creation.
+    async resend(invitationId: string): Promise<{ document: InvitationCreated['document']; etag?: string }> {
       if (!uuidPattern.test(invitationId)) throw new Error('Invitations are addressed by their id.')
       const response = await pane
         .post<InvitationCreated['document']>(`${paths.user}/${invitationId}/resend`)
         .catch(rejectPaneAccessFailure)
-      return response.data
+      const headers = response.headers as unknown as Record<string, unknown>
+      const etag = headers.etag ?? headers.ETag
+      return { document: response.data, etag: typeof etag === 'string' && etag !== '' ? etag : undefined }
     },
 
     async revoke(kind: InvitationKind, invitationId: string, etag: string): Promise<void> {

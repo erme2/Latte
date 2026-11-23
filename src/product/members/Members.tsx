@@ -80,7 +80,11 @@ export function Members({ context }: Props) {
     setResent(null)
     try {
       const result = await invitations.resend(row.invitation.id)
-      setResent({ ...resendNotice(row.invitation.attributes.email, result.meta), url: result.meta.invitation_url })
+      const { data, meta } = result.document
+      setResent({ ...resendNotice(row.invitation.attributes.email, meta), url: meta.invitation_url })
+      // The earlier create link no longer works, and the row needs the invitation's new version to be revoked.
+      setCreated(null)
+      setRows((previous) => previous.map((old) => old.invitation.id === data.id ? { ...old, invitation: data, etag: result.etag } : old))
       setError(null)
     } catch (failure) {
       setError(resendFailureMessage(failure))

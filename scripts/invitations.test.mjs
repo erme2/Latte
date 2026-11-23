@@ -22,7 +22,7 @@ pane.defaults.adapter = async (request) => {
   calls.push([request.method, request.url, request.headers.get('If-Match') ?? null, request.data ?? null])
   const reply = (status, data, headers = {}) => ({ data, status, statusText: '', headers, config: request })
   if (request.method === 'post' && request.url.endsWith('/resend')) {
-    return reply(200, { data: invitation, meta: { request_id: 'r', invitation_url: 'https://app.test/?invitation_token=y', email_sent: false } })
+    return reply(200, { data: invitation, meta: { request_id: 'r', invitation_url: 'https://app.test/?invitation_token=y', email_sent: false } }, { etag: '"e2"' })
   }
   if (request.method === 'post') {
     return reply(201, { data: invitation, meta: { request_id: 'r', invitation_url: 'https://app.test/?invitation_token=x' } }, { etag: '"e1"' })
@@ -45,8 +45,9 @@ assert.equal(created.document.meta.invitation_url, 'https://app.test/?invitation
 await service.create('admin', 'b@example.test')
 await service.revoke('user', id, created.etag)
 const resent = await service.resend(id)
-assert.equal(resent.meta.invitation_url, 'https://app.test/?invitation_token=y')
-assert.equal(resent.meta.email_sent, false)
+assert.equal(resent.document.meta.invitation_url, 'https://app.test/?invitation_token=y')
+assert.equal(resent.document.meta.email_sent, false)
+assert.equal(resent.etag, '"e2"')
 await assert.rejects(service.resend('../x'))
 await assert.rejects(service.revoke('user', '../x', '"e"'))
 
@@ -104,6 +105,9 @@ const members = readFileSync('src/product/members/Members.tsx', 'utf8')
 assert.match(members, /invitations\.listAll\(/)
 assert.match(members, /invitations\.resend\(/)
 assert.match(members, /Resend invitation/)
+// After a resend the row takes the new ETag and the superseded create link is cleared, so revoke still works.
+assert.match(members, /etag: result\.etag/)
+assert.match(members, /setCreated\(null\)/)
 
 // The members page is admin only and sits behind the members function.
 const manifest = readFileSync('src/product/manifest.tsx', 'utf8')
