@@ -29,7 +29,7 @@ export {
 } from './errors.js'
 export type { PaneAccessErrorCode, PaneAccessFailure } from './errors.js'
 export { assertBrowserOrigin, loadLatteRuntimeConfig, parseLatteRuntimeConfig } from './config.js'
-export { createInvitationsService } from './invitations.js'
+export { canResendInvitation, createInvitationsService, resendNotice } from './invitations.js'
 export type {
   InvitationCreated,
   InvitationKind,

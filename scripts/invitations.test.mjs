@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { createInvitationsService, createPaneClient } from '../packages/latte-core/dist/index.js'
+import { canResendInvitation, createInvitationsService, resendNotice, createPaneClient } from '../packages/latte-core/dist/index.js'
 
 // Invitations (Latte#79) call Pane's installation routes and nothing organization related.
 const pane = createPaneClient({
@@ -21,6 +21,9 @@ const invitation = {
 pane.defaults.adapter = async (request) => {
   calls.push([request.method, request.url, request.headers.get('If-Match') ?? null, request.data ?? null])
   const reply = (status, data, headers = {}) => ({ data, status, statusText: '', headers, config: request })
+  if (request.method === 'post' && request.url.endsWith('/resend')) {
+    return reply(200, { data: invitation, meta: { request_id: 'r', invitation_url: 'https://app.test/?invitation_token=y', email_sent: false } })
+  }
   if (request.method === 'post') {
     return reply(201, { data: invitation, meta: { request_id: 'r', invitation_url: 'https://app.test/?invitation_token=x' } }, { etag: '"e1"' })
   }
@@ -41,6 +44,10 @@ assert.equal(created.etag, '"e1"')
 assert.equal(created.document.meta.invitation_url, 'https://app.test/?invitation_token=x')
 await service.create('admin', 'b@example.test')
 await service.revoke('user', id, created.etag)
+const resent = await service.resend(id)
+assert.equal(resent.meta.invitation_url, 'https://app.test/?invitation_token=y')
+assert.equal(resent.meta.email_sent, false)
+await assert.rejects(service.resend('../x'))
 await assert.rejects(service.revoke('user', '../x', '"e"'))
 
 assert.deepEqual(calls.map(([method, url]) => `${method} ${url}`), [
@@ -50,6 +57,7 @@ assert.deepEqual(calls.map(([method, url]) => `${method} ${url}`), [
   'post /installation/user-invitations',
   'post /installation/pane-admin-invitations',
   `delete /installation/user-invitations/${id}`,
+  `post /installation/user-invitations/${id}/resend`,
 ])
 assert.deepEqual(calls[3][3] && JSON.parse(calls[3][3]), { email: 'a@example.test' })
 assert.equal(calls[5][2], '"e1"')
@@ -81,8 +89,21 @@ pageCalls = 0
 await createInvitationsService(pagedPane).listAll('user')
 assert.equal(pageCalls, 2)
 
+// Resend is offered for pending user invitations only.
+for (const status of ['pending', 'accepted', 'revoked', 'expired']) {
+  assert.equal(canResendInvitation('user', status), status === 'pending')
+  assert.equal(canResendInvitation('admin', status), false)
+}
+assert.equal(resendNotice('a@example.test', { email_sent: true }).tone, 'success')
+assert.equal(resendNotice('a@example.test', {}).tone, 'success')
+const failed = resendNotice('a@example.test', { email_sent: false })
+assert.equal(failed.tone, 'error')
+assert.match(failed.message, /could not be sent/)
+
 const members = readFileSync('src/product/members/Members.tsx', 'utf8')
 assert.match(members, /invitations\.listAll\(/)
+assert.match(members, /invitations\.resend\(/)
+assert.match(members, /Resend invitation/)
 
 // The members page is admin only and sits behind the members function.
 const manifest = readFileSync('src/product/manifest.tsx', 'utf8')

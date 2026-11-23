@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { paneErrorCode, type InvitationKind, type InvitationResource } from '@erme2/latte'
+import { canResendInvitation, paneErrorCode, resendNotice, type InvitationKind, type InvitationResource } from '@erme2/latte'
 import type { ProductPageProps } from '../contract'
 import type { ProductServices } from '../services'
 
@@ -18,6 +18,12 @@ function failureMessage(error: unknown): string {
   }
 }
 
+function resendFailureMessage(error: unknown): string {
+  return paneErrorCode(error) === 'operation_conflict'
+    ? 'Only a pending invitation can be resent. Reload the list.'
+    : failureMessage(error)
+}
+
 export function Members({ context }: Props) {
   const { invitations } = context.services
   const [kind, setKind] = useState<InvitationKind>('user')
@@ -27,6 +33,7 @@ export function Members({ context }: Props) {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [created, setCreated] = useState<{ email: string; url: string } | null>(null)
+  const [resent, setResent] = useState<{ tone: 'success' | 'error'; message: string; url: string } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -51,6 +58,7 @@ export function Members({ context }: Props) {
     event.preventDefault()
     setBusy(true)
     setCreated(null)
+    setResent(null)
     try {
       const result = await invitations.create(kind, email)
       setCreated({ email: result.document.data.attributes.email, url: result.document.meta.invitation_url })
@@ -62,6 +70,20 @@ export function Members({ context }: Props) {
       setError(null)
     } catch (failure) {
       setError(failureMessage(failure))
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function resend(row: Row) {
+    setBusy(true)
+    setResent(null)
+    try {
+      const result = await invitations.resend(row.invitation.id)
+      setResent({ ...resendNotice(row.invitation.attributes.email, result.meta), url: result.meta.invitation_url })
+      setError(null)
+    } catch (failure) {
+      setError(resendFailureMessage(failure))
     } finally {
       setBusy(false)
     }
@@ -117,6 +139,17 @@ export function Members({ context }: Props) {
         </p>
       ) : null}
 
+      {resent ? (
+        <p className={resent.tone === 'error' ? 'notice error' : 'notice invitation-link'} role={resent.tone === 'error' ? 'alert' : 'status'}>
+          <span>
+            {resent.message}
+            <code>{resent.url}</code>
+          </span>
+          <button className="button secondary" type="button"
+            onClick={() => { void navigator.clipboard?.writeText(resent.url) }}>Copy link</button>
+        </p>
+      ) : null}
+
       <div className="section-heading">
         <h3>Invitations</h3>
       </div>
@@ -131,12 +164,16 @@ export function Members({ context }: Props) {
                   {new Date(row.invitation.attributes.expires_at).toLocaleString()}
                 </span>
               </div>
-              {row.invitation.attributes.status === 'pending' && row.etag ? (
-                <div className="row-actions">
+              <div className="row-actions">
+                <button className="button secondary" type="button"
+                  disabled={busy || !canResendInvitation(row.kind, row.invitation.attributes.status)}
+                  title={row.kind === 'admin' ? 'Pane cannot resend administrator invitations yet.' : undefined}
+                  onClick={() => { void resend(row) }}>Resend invitation</button>
+                {row.invitation.attributes.status === 'pending' && row.etag ? (
                   <button className="button danger" type="button" disabled={busy}
                     onClick={() => { void revoke(row) }}>Revoke</button>
-                </div>
-              ) : null}
+                ) : null}
+              </div>
             </div>
           ))}
         </div>

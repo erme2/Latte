@@ -24,7 +24,8 @@ export type InvitationCreated = {
   document: {
     data: InvitationResource
     // The one-time link to send to the invitee: Pane returns it only in this response.
-    meta: { request_id: string; invitation_url: string }
+    // `email_sent` is false when Pane kept the invitation but could not send the email.
+    meta: { request_id: string; invitation_url: string; email_sent?: boolean }
   }
   // Revoking needs this ETag. Pane sends it on creation only (lists carry none).
   etag: string
@@ -36,6 +37,22 @@ const paths: Record<InvitationKind, string> = {
 }
 
 const uuidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+
+// Only a pending user invitation can be resent: Pane has no resend route for administrator invitations, and it
+// answers 409 for accepted, revoked or expired ones.
+export function canResendInvitation(kind: InvitationKind, status: InvitationStatus): boolean {
+  return kind === 'user' && status === 'pending'
+}
+
+// What to tell the administrator after a resend. Pane keeps the invitation when the email could not be sent.
+export function resendNotice(
+  email: string,
+  meta: { email_sent?: boolean },
+): { tone: 'success' | 'error'; message: string } {
+  return meta.email_sent === false
+    ? { tone: 'error', message: `The email to ${email} could not be sent. Copy the new link and send it yourself.` }
+    : { tone: 'success', message: `Invitation sent again to ${email}. The previous link no longer works.` }
+}
 
 export function createInvitationsService(pane: AxiosInstance) {
   async function list(kind: InvitationKind, cursor?: string): Promise<CollectionResponse<InvitationResource>> {
@@ -74,6 +91,15 @@ export function createInvitationsService(pane: AxiosInstance) {
         throw new Error('Pane response did not include the required ETag header.')
       }
       return { document: response.data, etag }
+    },
+
+    // Pane's resend route exists for user invitations only. It issues a fresh link on the same invitation and emails it.
+    async resend(invitationId: string): Promise<InvitationCreated['document']> {
+      if (!uuidPattern.test(invitationId)) throw new Error('Invitations are addressed by their id.')
+      const response = await pane
+        .post<InvitationCreated['document']>(`${paths.user}/${invitationId}/resend`)
+        .catch(rejectPaneAccessFailure)
+      return response.data
     },
 
     async revoke(kind: InvitationKind, invitationId: string, etag: string): Promise<void> {
