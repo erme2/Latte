@@ -6,6 +6,8 @@ import {
   createCrudService,
   createPaneClient,
   CrudValidationError,
+  recordFieldValue,
+  recordFormBody,
 } from '../packages/latte-core/dist/index.js'
 import { resolveProductRoute } from '../src/product/runtime.mjs'
 
@@ -42,6 +44,20 @@ assert.equal(bare.sort, null)
 assert.deepEqual(bare.fields.map((field) => field.name), ['id', 'name', 'pass'])
 assert.equal(bare.fields[2].input, 'password')
 assert.equal(buildRecordView({ ...map, fields: [map.fields[1]] }).primaryKey, null)
+
+// Editing a row as Pane returns it: dates arrive as objects, JSON as strings, arrays as arrays.
+const field = (input, wire = null) => ({ name: 'f', label: 'F', help: null, input, wire, readOnly: false })
+assert.equal(recordFieldValue(field('date'), { f: { date: '2021-01-01 00:00:00.000000', timezone_type: 3, timezone: 'UTC' } }), '2021-01-01')
+assert.equal(recordFieldValue(field('date'), { f: '2021-02-03' }), '2021-02-03')
+assert.equal(recordFieldValue(field('date'), { f: null }), '')
+assert.equal(recordFieldValue(field('json', 'json'), { f: '{"some":"JSON"}' }), '{"some":"JSON"}')
+assert.equal(recordFieldValue(field('json', 'array'), { f: ['a'] }), '[\n  "a"\n]')
+// Pane's `json` rule needs a string and its `array` type an array.
+assert.deepEqual(recordFormBody([field('json', 'json')], { f: '{"some": "JSON"}' }).body, { f: '{"some":"JSON"}' })
+assert.deepEqual(recordFormBody([field('json', 'array')], { f: '["a"]' }).body, { f: ['a'] })
+assert.equal(recordFormBody([field('json', 'array')], { f: '{}' }).errors.f, 'Enter a JSON array.')
+assert.equal(recordFormBody([field('json', 'json')], { f: '{' }).errors.f, 'Enter valid JSON.')
+assert.ok(['array', 'json'].includes(view.fields.find((item) => item.name === 'tags').wire))
 
 // The records route needs the records function and takes the source and table from the path.
 const routes = [{ id: 'records', path: '/records/:source/:table', function: 'records' }]

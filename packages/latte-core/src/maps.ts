@@ -214,6 +214,8 @@ export type RecordFormField = {
   label: string
   help: string | null
   input: 'text' | 'email' | 'number' | 'checkbox' | 'textarea' | 'date' | 'password' | 'json'
+  /** For a `json` input: Pane's `array` type takes a native array, its `json` type a JSON string. */
+  wire: 'array' | 'json' | null
   readOnly: boolean
 }
 
@@ -278,9 +280,54 @@ export function buildRecordView(table: TableMapResource['attributes']): RecordVi
         label: label(field),
         help: typeof field.ui?.help === 'string' ? field.ui.help : null,
         input: input(field),
+        wire: field.type === 'array' ? 'array' : field.type === 'json' ? 'json' : null,
         readOnly: field.primary,
       })),
   }
+}
+
+// Pane serialises a date as `{date: 'YYYY-MM-DD HH:MM:SS.ffffff', timezone_type, timezone}`.
+function dateInputValue(value: unknown): string {
+  const raw = typeof value === 'object' && value !== null ? (value as { date?: unknown }).date : value
+  const match = typeof raw === 'string' ? /^\d{4}-\d{2}-\d{2}/.exec(raw) : null
+  return match ? match[0] : ''
+}
+
+/** The starting value of a form control for a field, from the row being edited (or none). */
+export function recordFieldValue(field: RecordFormField, row: Record<string, unknown> | null): string | boolean {
+  const value = row?.[field.name]
+  if (field.input === 'checkbox') return value === true || value === 1 || value === '1'
+  if (value === null || value === undefined) return ''
+  if (field.input === 'date') return dateInputValue(value)
+  if (field.input === 'json') return typeof value === 'string' && field.wire === 'json' ? value : JSON.stringify(value, null, 2)
+  return String(value)
+}
+
+/**
+ * The request body Pane expects from the form values. A JSON field that does not parse is a
+ * field error; a `json` field is sent as a JSON string and an `array` field as a native array.
+ */
+export function recordFormBody(
+  fields: readonly RecordFormField[],
+  values: Record<string, string | boolean>,
+): { body: Record<string, unknown>; errors: Record<string, string> } {
+  const body: Record<string, unknown> = {}
+  const errors: Record<string, string> = {}
+  for (const field of fields) {
+    if (field.readOnly) continue
+    const value = values[field.name]
+    if (field.input === 'checkbox') body[field.name] = value === true
+    else if (value === '') body[field.name] = null
+    else if (field.input === 'number') body[field.name] = Number(value)
+    else if (field.input === 'json') {
+      try {
+        const parsed: unknown = JSON.parse(String(value))
+        if (field.wire === 'array' && !Array.isArray(parsed)) errors[field.name] = 'Enter a JSON array.'
+        else body[field.name] = field.wire === 'array' ? parsed : JSON.stringify(parsed)
+      } catch { errors[field.name] = 'Enter valid JSON.' }
+    } else body[field.name] = value
+  }
+  return { body, errors }
 }
 
 function textSetting(settings: readonly MapPublicSetting[], key: string): string | undefined {

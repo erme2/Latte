@@ -49,6 +49,8 @@ export {
   mapFunctionKeys,
   mapsBrandSettingKeys,
   mapsRecordPath,
+  recordFieldValue,
+  recordFormBody,
 } from './maps.js'
 export type {
   DashboardCard,

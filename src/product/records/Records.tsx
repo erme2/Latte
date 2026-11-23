@@ -2,9 +2,10 @@ import { useEffect, useState, type FormEvent } from 'react'
 import {
   buildRecordView,
   CrudValidationError,
+  recordFieldValue,
+  recordFormBody,
   type CrudPagination,
   type CrudRow,
-  type RecordFormField,
   type RecordView,
 } from '@erme2/latte'
 import type { ProductPageProps } from '../contract'
@@ -24,30 +25,6 @@ function cell(value: unknown): string {
   return typeof value === 'object' ? JSON.stringify(value) : String(value)
 }
 
-function initialValue(field: RecordFormField, row: CrudRow | null): string | boolean {
-  const value = row?.[field.name]
-  if (field.input === 'checkbox') return value === true || value === 1 || value === '1'
-  if (value === null || value === undefined) return ''
-  return field.input === 'json' ? JSON.stringify(value, null, 2) : String(value)
-}
-
-// Turns the form into the body Pane expects. A JSON field that does not parse is a field error.
-function formBody(fields: RecordFormField[], values: FormValues) {
-  const body: CrudRow = {}
-  const errors: Record<string, string> = {}
-  for (const field of fields) {
-    if (field.readOnly) continue
-    const value = values[field.name]
-    if (field.input === 'checkbox') body[field.name] = value === true
-    else if (value === '') body[field.name] = null
-    else if (field.input === 'number') body[field.name] = Number(value)
-    else if (field.input === 'json') {
-      try { body[field.name] = JSON.parse(String(value)) } catch { errors[field.name] = 'Enter valid JSON.' }
-    } else body[field.name] = value
-  }
-  return { body, errors }
-}
-
 function RecordForm({ view, table, mode, context, onDone }: {
   view: RecordView
   table: string
@@ -58,7 +35,7 @@ function RecordForm({ view, table, mode, context, onDone }: {
   const { crud } = context.services
   const editing = mode.key !== null
   const [values, setValues] = useState<FormValues>(
-    () => Object.fromEntries(view.fields.map((field) => [field.name, initialValue(field, mode.row)])),
+    () => Object.fromEntries(view.fields.map((field) => [field.name, recordFieldValue(field, mode.row)])),
   )
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [failure, setFailure] = useState<string | null>(null)
@@ -66,7 +43,7 @@ function RecordForm({ view, table, mode, context, onDone }: {
 
   async function submit(event: FormEvent) {
     event.preventDefault()
-    const { body, errors: local } = formBody(view.fields, values)
+    const { body, errors: local } = recordFormBody(view.fields, values)
     setErrors(local)
     setFailure(null)
     if (Object.keys(local).length > 0) return
