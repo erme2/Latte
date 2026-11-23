@@ -9,7 +9,7 @@ What Latte offers (MVP roadmap, owner decisions of 2026-11-18):
 
 - **Invitations and members** for administrators and users (`/members`).
 - **Records**: list, create, edit and delete rows through Pane's Story/Action/Mapper
-  CRUD route, from a static menu (Latte#80).
+  CRUD route, from the menu and table maps Pane serves (Latte#81).
 - **Views drawn from the maps**: the menu and the list and edit views come from the
   maps Pane serves (Latte#81), and a **maps editor** edits the exposed fields, labels,
   validation and views (Latte#71). Migrations stay the source of truth for table

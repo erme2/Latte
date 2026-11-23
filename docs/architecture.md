@@ -192,16 +192,23 @@ can be revoked (`If-Match`). Failures are shown as fixed messages (`operation_co
 Not built yet, because Pane has no route for them: a members list with roles, and revoking an
 invitation read from a list (it needs an `ETag` in the list or a read route).
 
-### Records (Target, not implemented)
+### Records (Implemented, Latte#81)
 
-The record list and edit views are not on `main`. The generic row and data services were removed
-with the organization model, and the menu scaffolding (`recordMenu` in the manifest, hidden while
-empty) is all that is there. Latte#80 builds the views on Pane's Story/Action/Mapper CRUD route
-(`GET`/`POST /crud/{subject}`, `GET`/`PUT`/`DELETE /crud/{subject}/{key}`), the one CRUD route
-(owner decision of 2026-11-17), from a static menu: a fixed list in Latte code with entries for
-system tables, maps and the Sweegly data tables. Pane decides who may read and write; Latte shows
-the result or a fixed error message. The response envelope of that route and the mapping from a
-map's `source` and `table` to a `/crud` subject are open (Latte#80).
+`/records/:source/:table` is the generic list and edit screen, tagged with the `records` function (off in the
+maps means no route). The menu entries come from the maps (`buildMapsShell`); the screen reads the table's map
+(`GET /api/v1/maps/{source}/{table}`) and `buildRecordView` turns it into columns, default sort and form fields:
+
+- Columns: `ui.list.columns` (unknown names are dropped), else the first six visible fields. `ui.list.default_sort`
+  sets the first sort (`-name` for descending); a header is a sort button when the field is `sortable`.
+- Form: every visible, non-computed field, with an input chosen from the field `type` (and `format: email`,
+  `ui.widget: textarea`): text, email, number, checkbox, textarea, date, password, and JSON for `array` and `json`.
+  `ui.label` and `ui.help` give the label and help text. The primary key is read-only on edit and left out on create.
+- Rows go through Pane's `/crud/{table}` route (`createCrudService`: `list`, `get`, `create`, `update`, `remove`;
+  the table name is the subject, bodies are the plain field object). A failed validation (`400`,
+  `data.errors: [{field_name, message}]`) is shown next to the field; any other failure shows a fixed message.
+  Deleting asks for a confirmation in the row first. Pane decides who may read and write.
+- Table creation and field changes are not here: migrations and Pane's maps are the source of truth. A table added
+  through them appears in the menu and works with no Latte code change.
 
 ### Dashboard (Implemented, Latte#73)
 
@@ -212,16 +219,14 @@ row total (`pagination.total`) and/or the newest `recent` rows (by `sort`, desce
 `ui.list.columns`, first three). System tables never get a card, and a malformed config gives none.
 Rows are read with `createCrudService(...).list(table)`, a read-only `GET /crud/{subject}` that uses
 the table name as the subject and the route's envelope `{status, data, pagination: {page, limit, total}}`.
-Pane decides who may read; a card Pane refuses shows a fixed error message. Create, edit and delete on
-`/crud` belong to Latte#81.
+Pane decides who may read; a card Pane refuses shows a fixed error message. Create, edit and delete are on the records screen (Latte#81).
 
 ### Shell and views drawn from the maps
 
 The shell is current. Latte builds its menu, enabled functions and branding from Pane's maps
-bootstrap, `GET /api/v1/maps` (Pane#154, closed), through `src/shell/useMapsShell.ts`. Target:
-Latte#81 draws the dynamic menu and the list and edit views from each table map's `ui` part
-(`GET /api/v1/maps/{source}/{table}`), and Latte#71 adds a maps editor for fields, validation and
-views. In the MVP Latte edits maps and data, never tables: migrations are the source of truth.
+bootstrap, `GET /api/v1/maps` (Pane#154, closed), through `src/shell/useMapsShell.ts`. Latte#81 draws the list and edit views from each table map's `ui` part
+(`GET /api/v1/maps/{source}/{table}`). Target, not implemented: Latte#71 adds a maps editor for fields,
+validation and views. In the MVP Latte edits maps and data, never tables: migrations are the source of truth.
 
 Requests keep the same shape as today: the page calls a service, the service calls Pane through
 the shared client, Pane decides, and Latte shows the result or a fixed error message. Latte never
@@ -235,17 +240,16 @@ sends raw SQL, client-chosen column names outside the map, or row ownership.
   `paneAccessFailure`.
 - Destructive membership actions are limited in the UI: the last active administrator can't be
   demoted or suspended, and only pending invitations can be revoked. Pane enforces the same rules.
-- **Open:** there is no confirmation step yet for suspend, revoke or (future) row delete. Before
-  row delete ships, the CRUD work (Latte#80) has to decide on confirmation and undo
-  behaviour.
+- Row delete asks for a confirmation in the row; there is no undo. **Open:** suspend and revoke still have no
+  confirmation step.
 
 ## Current and target: known differences
 
 | Area | Current | Target |
 | --- | --- | --- |
 | Shell, menu and pages | Built from Pane maps (Latte#69, on `main`) | Unchanged |
-| Record screens | None (hidden menu scaffolding only) | List, create, edit and delete through `/crud` (Latte#80) |
-| Menu and views | Menu from maps; no record views | Dynamic menu and views drawn from the maps (Latte#81) |
+| Record screens | Generic list, create, edit and delete through `/crud` (Latte#81) | Unchanged |
+| Menu and views | Menu and views drawn from the maps | Unchanged |
 | Maps editor | None | Edits fields, validation and views (Latte#71) |
 | Connections | Placeholder `/connections/:connectionId` route and page | **Open**: no managed connections in the MVP; likely removed |
 | Navigation | Full page loads through `<a href>` | **Open**: no decision on client-side navigation |

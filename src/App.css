@@ -630,3 +630,26 @@
     grid-template-columns: 1fr;
   }
 }
+
+.record-page { display: grid; gap: 16px; }
+.record-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px; }
+.record-toolbar h2 { margin: 0; }
+.record-table { overflow-x: auto; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); }
+.record-table table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.record-table th, .record-table td { padding: 8px 12px; text-align: left; overflow-wrap: anywhere; border-bottom: 1px solid var(--border); }
+.record-table th { color: var(--muted); font-weight: 600; }
+.sort-button { padding: 0; border: 0; color: inherit; background: none; cursor: pointer; font: inherit; font-weight: 600; text-decoration: underline; }
+.record-row-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.record-row-actions .button { min-height: 32px; padding: 0 10px; }
+.record-pager { display: flex; align-items: center; gap: 12px; }
+.record-form { display: grid; gap: 14px; max-width: 560px; }
+.record-form h3 { margin: 0; }
+.record-field { display: grid; gap: 4px; }
+.record-field label { font-weight: 600; }
+.record-field input:not([type='checkbox']), .record-field textarea { min-height: 40px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; color: inherit; background: var(--surface); font: inherit; }
+.record-field [aria-invalid='true'] { border-color: #b42318; }
+.record-field small { color: var(--muted); }
+.record-field .record-error { color: #b42318; }
+.record-actions { display: flex; gap: 10px; }
+.record-field label:has(input[type='checkbox']) { display: flex; align-items: center; gap: 8px; }
+.record-field input[type='checkbox'] { width: 18px; height: 18px; min-height: 0; margin: 0; }

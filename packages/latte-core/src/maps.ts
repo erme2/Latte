@@ -209,6 +209,80 @@ export function buildDashboardCards(tables: readonly MapTableSummary[]): Dashboa
     .map(({ position: _position, ...card }) => card)
 }
 
+export type RecordFormField = {
+  name: string
+  label: string
+  help: string | null
+  input: 'text' | 'email' | 'number' | 'checkbox' | 'textarea' | 'date' | 'password' | 'json'
+  readOnly: boolean
+}
+
+export type RecordView = {
+  title: string
+  primaryKey: string | null
+  columns: { name: string; label: string; sortable: boolean }[]
+  sort: { name: string; order: 'asc' | 'desc' } | null
+  fields: RecordFormField[]
+}
+
+const listColumnsMax = 6
+
+/**
+ * The generic list and edit view of one table, from its map: the columns (`ui.list.columns`,
+ * else the first visible fields), the default sort (`ui.list.default_sort`, `-name` for descending)
+ * and the form fields with their input kind. Hidden and computed fields are left out of the
+ * form; the primary key is shown read-only on edit and left out on create (Pane assigns it).
+ */
+export function buildRecordView(table: TableMapResource['attributes']): RecordView {
+  const fields = table.fields.filter((field) => isMapName(field.name))
+  const visible = fields.filter((field) => field.ui?.hidden !== true)
+  const label = (field: MapField) => field.ui?.label?.trim() || field.name
+  const byName = new Map(fields.map((field) => [field.name, field]))
+
+  const configured = Array.isArray(table.ui?.list?.columns)
+    ? table.ui.list.columns.filter((name): name is string => typeof name === 'string' && byName.has(name))
+    : []
+  const columnFields = (configured.length > 0
+    ? configured.map((name) => byName.get(name) as MapField)
+    : visible.filter((field) => field.type !== 'password').slice(0, listColumnsMax))
+
+  const rawSort = typeof table.ui?.list?.default_sort === 'string' ? table.ui.list.default_sort : ''
+  const sortName = rawSort.startsWith('-') ? rawSort.slice(1) : rawSort
+  const sortField = byName.get(sortName)
+  const primary = fields.find((field) => field.primary) ?? null
+
+  const input = (field: MapField): RecordFormField['input'] => {
+    const widget = field.ui?.widget
+    if (widget === 'textarea') return 'textarea'
+    switch (field.type) {
+      case 'number': return 'number'
+      case 'boolean': return 'checkbox'
+      case 'text': return 'textarea'
+      case 'date': return 'date'
+      case 'password': return 'password'
+      case 'array':
+      case 'json': return 'json'
+      default: return field.format === 'email' || field.validations.some((rule) => rule.rule === 'email') ? 'email' : 'text'
+    }
+  }
+
+  return {
+    title: table.ui?.label?.trim() || table.table,
+    primaryKey: primary?.name ?? null,
+    columns: columnFields.map((field) => ({ name: field.name, label: label(field), sortable: field.sortable })),
+    sort: sortField ? { name: sortField.name, order: rawSort.startsWith('-') ? 'desc' : 'asc' } : null,
+    fields: visible
+      .filter((field) => !field.computed)
+      .map((field) => ({
+        name: field.name,
+        label: label(field),
+        help: typeof field.ui?.help === 'string' ? field.ui.help : null,
+        input: input(field),
+        readOnly: field.primary,
+      })),
+  }
+}
+
 function textSetting(settings: readonly MapPublicSetting[], key: string): string | undefined {
   const value = settings.find((setting) => setting.key === key)?.value
   return typeof value === 'string' && value.trim() !== '' ? value.trim() : undefined
