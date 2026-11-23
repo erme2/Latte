@@ -50,7 +50,13 @@ const field = (input, wire = null) => ({ name: 'f', label: 'F', help: null, inpu
 assert.equal(recordFieldValue(field('date'), { f: { date: '2021-01-01 00:00:00.000000', timezone_type: 3, timezone: 'UTC' } }), '2021-01-01')
 assert.equal(recordFieldValue(field('date'), { f: '2021-02-03' }), '2021-02-03')
 assert.equal(recordFieldValue(field('date'), { f: null }), '')
-assert.equal(recordFieldValue(field('json', 'json'), { f: '{"some":"JSON"}' }), '{"some":"JSON"}')
+assert.equal(recordFieldValue(field('json', 'json'), { f: { some: 'JSON' } }), '{\n  "some": "JSON"\n}')
+// A decoded JSON string (even a number- or object-looking one) round-trips unchanged.
+for (const stored of ['hello', '123', '{"x":1}']) {
+  const shown = recordFieldValue(field('json', 'json'), { f: stored })
+  assert.equal(shown, JSON.stringify(stored, null, 2))
+  assert.equal(recordFormBody([field('json', 'json')], { f: shown }).body.f, JSON.stringify(stored))
+}
 assert.equal(recordFieldValue(field('json', 'array'), { f: ['a'] }), '[\n  "a"\n]')
 // Pane's `json` rule needs a string and its `array` type an array.
 assert.deepEqual(recordFormBody([field('json', 'json')], { f: '{"some": "JSON"}' }).body, { f: '{"some":"JSON"}' })

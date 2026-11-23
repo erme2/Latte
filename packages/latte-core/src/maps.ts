@@ -299,7 +299,8 @@ export function recordFieldValue(field: RecordFormField, row: Record<string, unk
   if (field.input === 'checkbox') return value === true || value === 1 || value === '1'
   if (value === null || value === undefined) return ''
   if (field.input === 'date') return dateInputValue(value)
-  if (field.input === 'json') return typeof value === 'string' && field.wire === 'json' ? value : JSON.stringify(value, null, 2)
+  // Pane already json_decodes a `json` value, so a string here is the JSON value itself: always encode it.
+  if (field.input === 'json') return JSON.stringify(value, null, 2)
   return String(value)
 }
 
