@@ -20,8 +20,9 @@ const cards = buildDashboardCards([
   table('empty_card', { dashboard: { count: false, recent: 0 } }),
   table('bad_config', { dashboard: 'yes' }),
   table('maps_tables', { dashboard: { count: true } }, { system: true }),
-  table('too_many', { dashboard: { recent: 500 } }),
-  table('bad_sort', { dashboard: { recent: 1, sort: 'x; drop table' } }),
+  table('too_many', { dashboard: { recent: 500, sort: 'id' } }),
+  table('bad_sort', { dashboard: { count: true, recent: 1, sort: 'x; drop table' } }),
+  table('no_sort', { dashboard: { recent: 3 } }),
   table('no_ui', null),
   table('Bad-Name', { dashboard: { count: true } }),
 ])
@@ -34,6 +35,9 @@ assert.deepEqual(lists, {
 })
 assert.equal(cards.find((card) => card.table === 'too_many').recent, dashboardRecentMax)
 assert.equal(cards.find((card) => card.table === 'bad_sort').sort, null)
+// Recent rows without a usable sort would be the oldest ones, so they are dropped (and a card with no count goes too).
+assert.equal(cards.find((card) => card.table === 'bad_sort').recent, 0)
+assert.equal(cards.find((card) => card.table === 'no_sort'), undefined)
 assert.equal(cards.find((card) => card.table === 'products').label, 'Products')
 assert.deepEqual(buildDashboardCards([]), [])
 

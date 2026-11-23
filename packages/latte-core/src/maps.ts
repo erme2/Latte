@@ -35,7 +35,7 @@ export type MapTableUi = {
 }
 
 // A table's dashboard card (Latte convention in the table's `ui`; Pane keeps `ui` open):
-// `count` shows the row total, `recent` (1 to 10) lists that many rows ordered by `sort`, newest first.
+// `count` shows the row total, `recent` (1 to 10) lists that many rows ordered by `sort`, newest first (`recent` is ignored without a valid `sort`).
 export type MapTableDashboard = { count?: boolean; recent?: number; sort?: string; position?: number }
 
 export type MapFieldUi = {
@@ -183,7 +183,9 @@ export function buildDashboardCards(tables: readonly MapTableSummary[]): Dashboa
     if (!isMapName(table.source) || !isMapName(table.table)) continue
 
     const count = config.count === true
-    const recent = Number.isInteger(config.recent) ? Math.min(Math.max(config.recent as number, 0), dashboardRecentMax) : 0
+    const sort = isMapName(config.sort) ? config.sort : null
+    // Recent rows need a sort to be newest first (Pane's default order is oldest first), so without one the card keeps its count only.
+    const recent = sort !== null && Number.isInteger(config.recent) ? Math.min(Math.max(config.recent as number, 0), dashboardRecentMax) : 0
     if (!count && recent === 0) continue
 
     const columns = Array.isArray(table.ui?.list?.columns)
@@ -196,7 +198,7 @@ export function buildDashboardCards(tables: readonly MapTableSummary[]): Dashboa
       label: table.ui?.label?.trim() || table.table,
       count,
       recent,
-      sort: isMapName(config.sort) ? config.sort : null,
+      sort,
       columns,
       position: typeof config.position === 'number' && Number.isFinite(config.position) ? config.position : 0,
     })
