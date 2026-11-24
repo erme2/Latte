@@ -89,6 +89,14 @@ assert.equal(buildMapBody(map, bound).body.sql_name, 'sweegly_ira_lists')
 bound.sqlName = 'Bad Name'
 assert.equal(buildMapBody(map, bound).errors.sql_name, 'Use lowercase letters, digits and underscores.')
 
+// Field columns can be renamed too: the owner supplies the physical column name.
+assert.equal('sql_name' in untouched.body.fields[0], false)
+const aliased = buildMapEdit(map)
+find(aliased, 'name').sqlName = ' physical_name '
+assert.equal(buildMapBody(map, aliased).body.fields.find((f) => f.name === 'name').sql_name, 'physical_name')
+find(aliased, 'name').sqlName = 'Bad Name'
+assert.equal(buildMapBody(map, aliased).errors['name.sql_name'], 'Use lowercase letters, digits and underscores.')
+
 // The saved map still draws the generic views (#81): the edit reaches them through Pane's map.
 const view = buildRecordView({ ...map, ui: body.ui, fields: body.fields })
 assert.deepEqual(view.columns.map((column) => column.name), ['price', 'name'])

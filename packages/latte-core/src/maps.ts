@@ -145,6 +145,8 @@ export type MapFieldEdit = {
   label: string
   help: string
   hidden: boolean
+  /** The physical column name, when it differs from the field name. Not shown by Pane's read, so '' unless the owner types it. */
+  sqlName: string
   /** Only `max`, `min` and `email` are edited; other rules (`unique`, `exists`) stay as they are. */
   validations: { rule: 'max' | 'min' | 'email'; value: string; message: string }[]
 }
@@ -170,7 +172,7 @@ export type TableMapBody = {
   sql_name?: string
   description: string | null
   ui: MapTableUi | null
-  fields: (Omit<MapField, 'computed'> & { computed: null })[]
+  fields: (Omit<MapField, 'computed'> & { computed: null; sql_name?: string })[]
 }
 
 /**
@@ -212,6 +214,7 @@ export function buildMapEdit(table: TableMapResource['attributes']): MapEdit {
       label: field.ui?.label ?? '',
       help: typeof field.ui?.help === 'string' ? field.ui.help : '',
       hidden: field.ui?.hidden === true,
+      sqlName: '',
       validations: field.validations.flatMap((rule) =>
         (editableRules as readonly string[]).includes(rule.rule)
           ? [{ rule: rule.rule, value: rule.value === undefined || rule.value === null ? '' : String(rule.value), message: rule.message ?? '' }]
@@ -270,7 +273,9 @@ export function buildMapBody(
     ui = withKey(ui, 'help', item.help.trim())
     ui = withKey(ui, 'hidden', item.hidden)
     // Pane reads `computed` as a boolean but only accepts an object or null on save: the definition is not readable, so it is not sent.
-    fields.push({ ...field, computed: null, validations: [...kept, ...edited], ui })
+    const columnName = item.sqlName.trim()
+    if (columnName !== '' && !mapNamePattern.test(columnName)) errors[`${item.name}.sql_name`] = 'Use lowercase letters, digits and underscores.'
+    fields.push({ ...field, computed: null, ...(columnName !== '' ? { sql_name: columnName } : {}), validations: [...kept, ...edited], ui })
   }
 
   let ui = withKey(table.ui, 'label', edit.label.trim())

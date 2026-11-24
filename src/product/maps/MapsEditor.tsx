@@ -201,6 +201,13 @@ function MapForm({ loaded, context, onSaved }: { loaded: Loaded; context: Props[
               <label htmlFor={`${id}-help`}>Help text</label>
               <input id={`${id}-help`} value={field.help} onChange={(event) => patchField(index, { help: event.target.value })} />
             </div>
+            {readOnly ? null : (
+              <div className="record-field">
+                <label htmlFor={`${id}-sql-name`}>Database column name (only if it differs from {field.name})</label>
+                <input id={`${id}-sql-name`} value={field.sqlName} aria-invalid={errors[`${field.name}.sql_name`] ? true : undefined} onChange={(event) => patchField(index, { sqlName: event.target.value })} />
+                {errors[`${field.name}.sql_name`] ? <small className="record-error" role="alert">{errors[`${field.name}.sql_name`]}</small> : null}
+              </div>
+            )}
             <div className="record-field">
               <label htmlFor={`${id}-hidden`}>
                 <input id={`${id}-hidden`} type="checkbox" checked={field.hidden} onChange={(event) => patchField(index, { hidden: event.target.checked })} />
@@ -240,7 +247,7 @@ function MapForm({ loaded, context, onSaved }: { loaded: Loaded; context: Props[
         )
       })}
 
-      {Object.entries(errors).filter(([path]) => !/^(columns|sort|description|sql_name)$/.test(path) && !/^[a-z][a-z0-9_]*\.validations\.\d+$/.test(path)).map(([path, message]) => (
+      {Object.entries(errors).filter(([path]) => !/^(columns|sort|description|sql_name)$/.test(path) && !/^[a-z][a-z0-9_]*\.(validations\.\d+|sql_name)$/.test(path)).map(([path, message]) => (
         <small className="record-error" role="alert" key={path}>{path}: {message}</small>
       ))}
       {readOnly ? null : (
