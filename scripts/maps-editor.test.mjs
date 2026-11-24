@@ -7,6 +7,8 @@ import {
   buildRecordView,
   createMapsService,
   createPaneClient,
+  mapSaveAllowed,
+  mapSaveLosses,
   paneErrorCode,
 } from '../packages/latte-core/dist/index.js'
 
@@ -55,6 +57,19 @@ assert.deepEqual(price.validations, [{ rule: 'min', value: 0, message: "Prices c
 assert.deepEqual(body.fields.find((field) => field.name === 'name').ui, { label: 'Product name' })
 // The field's other parts are sent as they were read.
 assert.equal(body.fields.find((field) => field.name === 'tags').type, 'array')
+
+// Pane only accepts an object or null for `computed`: the read's boolean is never sent back.
+assert.ok(untouched.body.fields.every((field) => field.computed === null))
+
+// Guard (owner decision): a save is blocked until overridden, and lists the computed fields it would drop.
+const computedMap = { ...map, fields: map.fields.map((field, at) => (at === 0 ? { ...field, computed: true } : field)) }
+assert.deepEqual(mapSaveLosses(map), [{ field: 'created_at', rule: 'computed definition' }])
+assert.deepEqual(mapSaveLosses(computedMap), [{ field: 'id', rule: 'computed definition' }, { field: 'created_at', rule: 'computed definition' }])
+assert.deepEqual(mapSaveLosses({ ...map, fields: map.fields.map((field) => ({ ...field, computed: false })) }), [])
+assert.equal(mapSaveAllowed(false), false)
+assert.equal(mapSaveAllowed(true), true)
+// With the override, the saved map is what the owner chose: computed is sent as null.
+assert.equal(buildMapBody(computedMap, buildMapEdit(computedMap)).body.fields[0].computed, null)
 
 // Problems found before sending.
 const bad = buildMapEdit(map)

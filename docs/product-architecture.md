@@ -56,7 +56,9 @@ request.
   columns and default sort, and each field's label, help text, visibility, `max`/`min`/`email`
   rules and form order. Saving sends the whole map with `PUT /maps/{source}/{table}` and the
   `If-Match` ETag it was read with: a stale edit answers `412 version_conflict` and asks for a
-  reload; system maps (`409 system_map_protected`) open read-only.
+  reload; system maps (`409 system_map_protected`) open read-only. Pane's read hides private
+  rules (`unique`, `exists`, SQL aliases, access rules, computed definitions) that a whole-map save
+  replaces, so the editor lists what would be lost and blocks the save until "Save anyway" is ticked.
 - **Not table structure.** Migrations are the source of truth. Pane creating tables from
   Latte (Pane#187) comes later.
 

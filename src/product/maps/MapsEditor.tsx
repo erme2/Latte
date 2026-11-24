@@ -2,6 +2,8 @@ import { useEffect, useState, type FormEvent } from 'react'
 import {
   buildMapBody,
   buildMapEdit,
+  mapSaveAllowed,
+  mapSaveLosses,
   paneErrorCode,
   paneErrorStatus,
   type MapEdit,
@@ -94,6 +96,8 @@ function MapForm({ loaded, context, onSaved }: { loaded: Loaded; context: Props[
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [failure, setFailure] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [override, setOverride] = useState(false)
+  const losses = mapSaveLosses(table)
 
   const patch = (change: Partial<MapEdit>) => { setEdit((previous) => ({ ...previous, ...change })) }
   const patchField = (index: number, change: Partial<MapFieldEdit>) =>
@@ -105,6 +109,10 @@ function MapForm({ loaded, context, onSaved }: { loaded: Loaded; context: Props[
     const { body, errors: local } = buildMapBody(table, edit)
     setErrors(local)
     if (Object.keys(local).length > 0) return
+    if (!mapSaveAllowed(override)) {
+      setFailure('This save would drop rules the editor cannot see. Tick "Save anyway" below if you want that, or leave the map as it is.')
+      return
+    }
     setBusy(true)
     try {
       await context.maps.saveTableMap(table.source, table.table, loaded.etag, body)
@@ -235,6 +243,20 @@ function MapForm({ loaded, context, onSaved }: { loaded: Loaded; context: Props[
       {Object.entries(errors).filter(([path]) => !/^(columns|sort|description)$/.test(path) && !/^[a-z][a-z0-9_]*\.validations\.\d+$/.test(path)).map(([path, message]) => (
         <small className="record-error" role="alert" key={path}>{path}: {message}</small>
       ))}
+      {readOnly ? null : (
+        <fieldset disabled={busy} className="map-guard">
+          <legend>Rules a save would drop</legend>
+          <p>Saving replaces the whole map, and Pane does not show Latte its private rules. These would be lost:</p>
+          <ul aria-label="Rules that would be lost">
+            {losses.map((loss) => <li key={`${loss.field}/${loss.rule}`}>{loss.field}: {loss.rule}</li>)}
+            <li>Any unique or exists rule, SQL alias or access rule on this map (not visible here).</li>
+          </ul>
+          <label htmlFor="map-override">
+            <input id="map-override" type="checkbox" checked={override} onChange={(event) => setOverride(event.target.checked)} />
+            {' '}Save anyway, dropping these rules
+          </label>
+        </fieldset>
+      )}
       {failure ? <p role="alert">{failure}</p> : null}
       <div className="record-actions">
         {!readOnly ? <button className="button" type="submit" disabled={busy}>Save map</button> : null}

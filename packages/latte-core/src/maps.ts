@@ -164,7 +164,23 @@ export type MapEdit = {
 export type TableMapBody = {
   description: string | null
   ui: MapTableUi | null
-  fields: MapField[]
+  fields: (Omit<MapField, 'computed'> & { computed: null })[]
+}
+
+/**
+ * What a save would drop. Pane's read of a map is lossy: it hides private `unique` and `exists` rules, SQL aliases,
+ * access rules and the definition of computed fields, and the save replaces the whole map. Only computed fields
+ * can be told from the read; the rest cannot be seen, so every save carries this warning (owner decision, Latte#71).
+ */
+export type MapSaveLoss = { field: string; rule: string }
+
+export function mapSaveLosses(table: TableMapResource['attributes']): MapSaveLoss[] {
+  return table.fields.filter((field) => field.computed).map((field) => ({ field: field.name, rule: 'computed definition' }))
+}
+
+/** A save is blocked until the owner chooses to override, because private rules may always be dropped. */
+export function mapSaveAllowed(override: boolean): boolean {
+  return override
 }
 
 const editableRules = ['max', 'min', 'email'] as const
@@ -223,7 +239,7 @@ export function buildMapBody(
   if (new Set(edit.columns).size !== edit.columns.length) errors.columns = 'A list column can be shown only once.'
   if (edit.sortField !== '' && !known.has(edit.sortField)) errors.sort = 'Sort by one of the fields.'
 
-  const fields: MapField[] = []
+  const fields: TableMapBody['fields'] = []
   for (const item of edit.fields) {
     const field = original.get(item.name)
     if (!field) continue
@@ -246,7 +262,8 @@ export function buildMapBody(
     let ui = withKey(field.ui, 'label', item.label.trim())
     ui = withKey(ui, 'help', item.help.trim())
     ui = withKey(ui, 'hidden', item.hidden)
-    fields.push({ ...field, validations: [...kept, ...edited], ui })
+    // Pane reads `computed` as a boolean but only accepts an object or null on save: the definition is not readable, so it is not sent.
+    fields.push({ ...field, computed: null, validations: [...kept, ...edited], ui })
   }
 
   let ui = withKey(table.ui, 'label', edit.label.trim())
