@@ -105,6 +105,24 @@ export function createMapsService(pane: AxiosInstance, _config: LatteRuntimeConf
       return versioned(response)
     },
 
+    // Replaces a whole table map (maps admin API, Pane#157). `etag` is the one `getTableMap` returned, so a stale edit
+    // fails with 412 `version_conflict` instead of overwriting; system maps answer 409 `system_map_protected`.
+    async saveTableMap(
+      source: string,
+      table: string,
+      etag: string,
+      body: TableMapBody,
+    ): Promise<VersionedItemResponse<TableMapResource>> {
+      if (!isMapName(source) || !isMapName(table)) {
+        throw new Error('Table maps are addressed by stable map names.')
+      }
+
+      const response = await pane
+        .put<ItemResponse<TableMapResource>>(`/maps/${source}/${table}`, body, { headers: { 'If-Match': etag } })
+        .catch(rejectPaneAccessFailure)
+      return versioned(response)
+    },
+
     // source and table usually come from the page URL, so they are checked before any request.
     async getTableMap(source: string, table: string): Promise<VersionedItemResponse<TableMapResource>> {
       if (!isMapName(source) || !isMapName(table)) {
@@ -120,6 +138,127 @@ export function createMapsService(pane: AxiosInstance, _config: LatteRuntimeConf
 }
 
 export type MapsService = ReturnType<typeof createMapsService>
+
+/** What the maps editor changes of a table map; everything else is sent back as read. */
+export type MapFieldEdit = {
+  name: string
+  label: string
+  help: string
+  hidden: boolean
+  /** Only `max`, `min` and `email` are edited; other rules (`unique`, `exists`) stay as they are. */
+  validations: { rule: 'max' | 'min' | 'email'; value: string; message: string }[]
+}
+
+export type MapEdit = {
+  label: string
+  description: string
+  /** Field names, in list order. */
+  columns: string[]
+  /** Field name, or '' for none. */
+  sortField: string
+  sortDescending: boolean
+  /** Every field of the map, in form order. */
+  fields: MapFieldEdit[]
+}
+
+export type TableMapBody = {
+  description: string | null
+  ui: MapTableUi | null
+  fields: MapField[]
+}
+
+const editableRules = ['max', 'min', 'email'] as const
+
+/** The starting values of the maps editor, from a table's map. */
+export function buildMapEdit(table: TableMapResource['attributes']): MapEdit {
+  const fields = table.fields.filter((field) => isMapName(field.name))
+  const names = new Set(fields.map((field) => field.name))
+  const rawSort = typeof table.ui?.list?.default_sort === 'string' ? table.ui.list.default_sort : ''
+  const sortName = rawSort.startsWith('-') ? rawSort.slice(1) : rawSort
+
+  return {
+    label: table.ui?.label ?? '',
+    description: table.description ?? '',
+    columns: Array.isArray(table.ui?.list?.columns)
+      ? table.ui.list.columns.filter((name): name is string => typeof name === 'string' && names.has(name))
+      : [],
+    sortField: names.has(sortName) ? sortName : '',
+    sortDescending: names.has(sortName) && rawSort.startsWith('-'),
+    fields: fields.map((field) => ({
+      name: field.name,
+      label: field.ui?.label ?? '',
+      help: typeof field.ui?.help === 'string' ? field.ui.help : '',
+      hidden: field.ui?.hidden === true,
+      validations: field.validations.flatMap((rule) =>
+        (editableRules as readonly string[]).includes(rule.rule)
+          ? [{ rule: rule.rule, value: rule.value === undefined || rule.value === null ? '' : String(rule.value), message: rule.message ?? '' }]
+          : []),
+    })),
+  }
+}
+
+// Sets or drops a key of a `ui` object; an object left empty becomes null.
+function withKey<T extends Record<string, unknown>>(ui: T | null | undefined, key: string, value: unknown): T | null {
+  const next: Record<string, unknown> = { ...(ui ?? {}) }
+  if (value === '' || value === undefined || value === null || value === false) delete next[key]
+  else next[key] = value
+  return Object.keys(next).length > 0 ? (next as T) : null
+}
+
+/**
+ * The request body for Pane's `PUT /maps/{source}/{table}` from the editor's values: the whole map, with the
+ * edited parts replaced and everything else (types, keys, other `ui` keys, other rules) as it was read.
+ * `errors` are field problems found before sending (a `max` or `min` rule needs a number, a column must exist, ...),
+ * keyed by `table`, `columns`, `sort` or `<field>.validations.<n>`.
+ */
+export function buildMapBody(
+  table: TableMapResource['attributes'],
+  edit: MapEdit,
+): { body: TableMapBody; errors: Record<string, string> } {
+  const errors: Record<string, string> = {}
+  const original = new Map(table.fields.map((field) => [field.name, field]))
+  const known = new Set(edit.fields.map((field) => field.name))
+
+  if (edit.columns.some((name) => !known.has(name))) errors.columns = 'A list column must be one of the fields.'
+  if (new Set(edit.columns).size !== edit.columns.length) errors.columns = 'A list column can be shown only once.'
+  if (edit.sortField !== '' && !known.has(edit.sortField)) errors.sort = 'Sort by one of the fields.'
+
+  const fields: MapField[] = []
+  for (const item of edit.fields) {
+    const field = original.get(item.name)
+    if (!field) continue
+    const kept = field.validations.filter((rule) => !(editableRules as readonly string[]).includes(rule.rule))
+    const edited: MapFieldValidation[] = []
+    item.validations.forEach((rule, index) => {
+      const result: MapFieldValidation = { rule: rule.rule }
+      if (rule.rule !== 'email') {
+        const value = Number(rule.value)
+        if (rule.value.trim() === '' || !Number.isFinite(value)) {
+          errors[`${item.name}.validations.${index}`] = 'Enter a number.'
+          return
+        }
+        result.value = value
+      }
+      if (rule.message.trim() !== '') result.message = rule.message.trim()
+      edited.push(result)
+    })
+
+    let ui = withKey(field.ui, 'label', item.label.trim())
+    ui = withKey(ui, 'help', item.help.trim())
+    ui = withKey(ui, 'hidden', item.hidden)
+    fields.push({ ...field, validations: [...kept, ...edited], ui })
+  }
+
+  let ui = withKey(table.ui, 'label', edit.label.trim())
+  const list: Record<string, unknown> = { ...(table.ui?.list ?? {}) }
+  if (edit.columns.length > 0) list.columns = edit.columns
+  else delete list.columns
+  if (edit.sortField !== '') list.default_sort = `${edit.sortDescending ? '-' : ''}${edit.sortField}`
+  else delete list.default_sort
+  ui = withKey(ui, 'list', Object.keys(list).length > 0 ? list : null)
+
+  return { body: { description: edit.description.trim() || null, ui, fields }, errors }
+}
 
 export type MapsShellMenuItem = {
   key: string
