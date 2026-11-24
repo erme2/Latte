@@ -3,6 +3,7 @@ import { Members } from './members/Members'
 import { Settings } from './settings/Settings'
 import { Dashboard } from './dashboard/Dashboard'
 import { Records } from './records/Records'
+import { MapEditor, MapsList } from './maps/MapsEditor'
 import { Connection, Forbidden, NotFound } from './pages'
 import { createServices, type ProductServices } from './services'
 
@@ -28,6 +29,18 @@ export const product = defineLatteProduct<ProductServices>({
       function: 'records',
     },
     {
+      id: 'maps',
+      path: '/maps',
+      component: MapsList,
+      roles: ['admin'],
+    },
+    {
+      id: 'map-editor',
+      path: '/maps/:source/:table',
+      component: MapEditor,
+      roles: ['admin'],
+    },
+    {
       id: 'members',
       path: '/members',
       component: Members,
@@ -49,7 +62,10 @@ export const product = defineLatteProduct<ProductServices>({
   ],
   // The menu comes from the install's maps. List here only the always-on
   // entries, such as the maps, menu and settings editors.
-  navigation: [{ id: 'settings', label: 'Settings', path: '/settings', roles: ['admin'] }],
+  navigation: [
+    { id: 'maps', label: 'Maps', path: '/maps', roles: ['admin'] },
+    { id: 'settings', label: 'Settings', path: '/settings', roles: ['admin'] },
+  ],
   // Fixed menu for the Story/Action/Mapper CRUD route. Hidden for now: the record views
   // still call Pane's removed /data routes; the entries come back when they use /crud (Latte#80).
   recordMenu: [],

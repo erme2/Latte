@@ -653,3 +653,13 @@
 .record-actions { display: flex; gap: 10px; }
 .record-field label:has(input[type='checkbox']) { display: flex; align-items: center; gap: 8px; }
 .record-field input[type='checkbox'] { width: 18px; height: 18px; min-height: 0; margin: 0; }
+.map-form { max-width: 720px; }
+.map-form fieldset { display: grid; gap: 12px; margin: 0; padding: 12px; border: 1px solid var(--border); border-radius: 8px; min-width: 0; }
+.map-form legend { padding: 0 6px; font-weight: 600; }
+.map-form select { min-height: 40px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; color: inherit; background: var(--surface); font: inherit; }
+.map-columns { display: grid; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.map-columns li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.map-columns li span { flex: 1 1 120px; }
+.map-columns .button, .map-rule .button { min-height: 32px; padding: 0 10px; }
+.map-rule { display: grid; gap: 6px; padding: 8px; border: 1px dashed var(--border); border-radius: 6px; }
+.map-rule input { min-height: 40px; padding: 8px 10px; border: 1px solid var(--border); border-radius: 6px; color: inherit; background: var(--surface); font: inherit; }

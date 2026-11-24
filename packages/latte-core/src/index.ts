@@ -41,6 +41,10 @@ export { createCrudService, CrudValidationError } from './crud.js'
 export type { CrudFieldError, CrudList, CrudListQuery, CrudPagination, CrudRow, CrudService } from './crud.js'
 export {
   buildDashboardCards,
+  buildMapBody,
+  buildMapEdit,
+  mapSaveAllowed,
+  mapSaveLosses,
   buildRecordView,
   buildMapsShell,
   createMapsService,
@@ -54,6 +58,10 @@ export {
 } from './maps.js'
 export type {
   DashboardCard,
+  MapEdit,
+  MapFieldEdit,
+  MapSaveLoss,
+  TableMapBody,
   MapTableDashboard,
   RecordFormField,
   RecordView,

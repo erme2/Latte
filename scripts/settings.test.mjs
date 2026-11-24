@@ -88,4 +88,4 @@ assert.equal(shell('/logo.png'), '/logo.png')
 // The page is an admin-only route with an always-on menu entry.
 const manifest = readFileSync(new URL('../src/product/manifest.tsx', import.meta.url), 'utf8')
 assert.match(manifest, /id: 'settings',\s*path: '\/settings',\s*component: Settings,\s*roles: \['admin'\]/)
-assert.match(manifest, /navigation: \[\{ id: 'settings'/)
+assert.match(manifest, /\{ id: 'settings', label: 'Settings', path: '\/settings', roles: \['admin'\] \}/)
