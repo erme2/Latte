@@ -240,7 +240,7 @@ function MapForm({ loaded, context, onSaved }: { loaded: Loaded; context: Props[
         )
       })}
 
-      {Object.entries(errors).filter(([path]) => !/^(columns|sort|description)$/.test(path) && !/^[a-z][a-z0-9_]*\.validations\.\d+$/.test(path)).map(([path, message]) => (
+      {Object.entries(errors).filter(([path]) => !/^(columns|sort|description|sql_name)$/.test(path) && !/^[a-z][a-z0-9_]*\.validations\.\d+$/.test(path)).map(([path, message]) => (
         <small className="record-error" role="alert" key={path}>{path}: {message}</small>
       ))}
       {readOnly ? null : (
@@ -251,6 +251,12 @@ function MapForm({ loaded, context, onSaved }: { loaded: Loaded; context: Props[
             {losses.map((loss) => <li key={`${loss.field}/${loss.rule}`}>{loss.field}: {loss.rule}</li>)}
             <li>Any unique or exists rule, SQL alias or access rule on this map (not visible here).</li>
           </ul>
+          <div className="record-field">
+            <label htmlFor="map-sql-name">Database table name (only if it differs from {table.table})</label>
+            <input id="map-sql-name" value={edit.sqlName} aria-invalid={errors.sql_name ? true : undefined} onChange={(event) => patch({ sqlName: event.target.value })} />
+            <small>Pane does not show the physical table name. Without it, a map bound to a prefixed or renamed table is rejected on save.</small>
+            {errors.sql_name ? <small className="record-error" role="alert">{errors.sql_name}</small> : null}
+          </div>
           <label htmlFor="map-override">
             <input id="map-override" type="checkbox" checked={override} onChange={(event) => setOverride(event.target.checked)} />
             {' '}Save anyway, dropping these rules

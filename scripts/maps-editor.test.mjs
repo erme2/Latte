@@ -81,6 +81,14 @@ assert.equal(problems['name.validations.0'], 'Enter a number.')
 assert.match(problems.columns, /only once/)
 assert.match(problems.sort, /one of the fields/)
 
+// A map bound to a prefixed or renamed table: Pane does not show the physical name, so the owner supplies it.
+assert.equal('sql_name' in untouched.body, false)
+const bound = buildMapEdit(map)
+bound.sqlName = ' sweegly_ira_lists '
+assert.equal(buildMapBody(map, bound).body.sql_name, 'sweegly_ira_lists')
+bound.sqlName = 'Bad Name'
+assert.equal(buildMapBody(map, bound).errors.sql_name, 'Use lowercase letters, digits and underscores.')
+
 // The saved map still draws the generic views (#81): the edit reaches them through Pane's map.
 const view = buildRecordView({ ...map, ui: body.ui, fields: body.fields })
 assert.deepEqual(view.columns.map((column) => column.name), ['price', 'name'])

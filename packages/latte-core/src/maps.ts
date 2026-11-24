@@ -152,6 +152,11 @@ export type MapFieldEdit = {
 export type MapEdit = {
   label: string
   description: string
+  /**
+   * The physical table name, when it differs from the map name. Pane's read does not show it, so it stays
+   * '' (the map name is used) unless the owner types it before an override save.
+   */
+  sqlName: string
   /** Field names, in list order. */
   columns: string[]
   /** Field name, or '' for none. */
@@ -162,6 +167,7 @@ export type MapEdit = {
 }
 
 export type TableMapBody = {
+  sql_name?: string
   description: string | null
   ui: MapTableUi | null
   fields: (Omit<MapField, 'computed'> & { computed: null })[]
@@ -195,6 +201,7 @@ export function buildMapEdit(table: TableMapResource['attributes']): MapEdit {
   return {
     label: table.ui?.label ?? '',
     description: table.description ?? '',
+    sqlName: '',
     columns: Array.isArray(table.ui?.list?.columns)
       ? table.ui.list.columns.filter((name): name is string => typeof name === 'string' && names.has(name))
       : [],
@@ -274,7 +281,10 @@ export function buildMapBody(
   else delete list.default_sort
   ui = withKey(ui, 'list', Object.keys(list).length > 0 ? list : null)
 
-  return { body: { description: edit.description.trim() || null, ui, fields }, errors }
+  const sqlName = edit.sqlName.trim()
+  if (sqlName !== '' && !mapNamePattern.test(sqlName)) errors.sql_name = 'Use lowercase letters, digits and underscores.'
+
+  return { body: { ...(sqlName !== '' ? { sql_name: sqlName } : {}), description: edit.description.trim() || null, ui, fields }, errors }
 }
 
 export type MapsShellMenuItem = {
