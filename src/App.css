@@ -718,6 +718,8 @@
   .shell[data-menu-open='true'] .sidebar {
     transform: none;
     visibility: visible;
+    /* Visible at once on open so focus can move into the drawer. */
+    transition: transform 0.2s ease;
   }
 
   .shell[data-collapsed='true'] .sidebar nav {

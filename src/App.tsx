@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { hasUserRole, mapsRecordPath } from '@erme2/latte'
 import { useLatteAuthentication } from './auth/useLatteAuthentication'
 import type { LatteProduct, LatteRuntime, ProductContext } from './product/contract'
@@ -36,6 +36,9 @@ export default function App<Services extends object>({ runtime, product }: Props
   )
   const [collapsed, setCollapsed] = useState(readCollapsed)
   const [menuOpen, setMenuOpen] = useState(false)
+  const menuButtonRef = useRef<HTMLButtonElement>(null)
+  const sidebarRef = useRef<HTMLElement>(null)
+  const drawerWasOpen = useRef(false)
   const maps = useMapsShell(runtime.maps, shellOptions, authState === 'authenticated' && session !== null)
 
   useEffect(() => {
@@ -47,12 +50,28 @@ export default function App<Services extends object>({ runtime, product }: Props
   }, [collapsed])
 
   useEffect(() => {
-    if (!menuOpen) return
+    if (!menuOpen) {
+      // Give focus back to the Menu button when the drawer is dismissed.
+      if (drawerWasOpen.current) menuButtonRef.current?.focus()
+      drawerWasOpen.current = false
+      return
+    }
+    drawerWasOpen.current = true
+    // Move focus into the drawer; the page behind it is inert while it is open.
+    sidebarRef.current?.querySelector<HTMLElement>('nav a, nav button')?.focus()
     const onKey = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setMenuOpen(false)
     }
+    const wide = window.matchMedia('(min-width: 821px)')
+    const onWide = () => {
+      if (wide.matches) setMenuOpen(false)
+    }
     window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    wide.addEventListener('change', onWide)
+    return () => {
+      window.removeEventListener('keydown', onKey)
+      wide.removeEventListener('change', onWide)
+    }
   }, [menuOpen])
 
   if (authState !== 'authenticated' || !session) {
@@ -107,7 +126,7 @@ export default function App<Services extends object>({ runtime, product }: Props
   return (
     <div className="shell" data-collapsed={collapsed ? 'true' : 'false'} data-menu-open={menuOpen ? 'true' : 'false'}>
       <a className="skip-link" href="#main-content">Skip to content</a>
-      <aside className="sidebar" id="sidebar">
+      <aside className="sidebar" id="sidebar" ref={sidebarRef}>
         <div className="sidebar-head">
           <a className="sidebar-brand" href={product.defaultPath}>
             <img className="brand-logo" src={brand.logoUrl ?? '/latte-logo.svg'} alt={brandName} width="168" height="67" />
@@ -154,7 +173,7 @@ export default function App<Services extends object>({ runtime, product }: Props
         </nav>
       </aside>
       <button className="menu-backdrop" type="button" tabIndex={-1} aria-hidden="true" onClick={closeMenu} />
-      <div className="shell-main">
+      <div className="shell-main" inert={menuOpen}>
         <header className="topbar">
           <button
             className="menu-button"
@@ -162,6 +181,7 @@ export default function App<Services extends object>({ runtime, product }: Props
             aria-label="Menu"
             aria-expanded={menuOpen}
             aria-controls="sidebar"
+            ref={menuButtonRef}
             onClick={() => setMenuOpen((value) => !value)}
           >
             <span aria-hidden="true">☰</span>

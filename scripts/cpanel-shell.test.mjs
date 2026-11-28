@@ -16,6 +16,11 @@ assert.match(app, /aria-expanded=\{menuOpen\}/)
 assert.match(app, /closest\('a'\)/)
 assert.match(app, /event\.key === 'Escape'/)
 
+// Drawer focus: focus moves into the drawer, the page behind is inert, focus returns to Menu.
+assert.match(app, /<div className="shell-main" inert=\{menuOpen\}>/)
+assert.match(app, /sidebarRef\.current\?\.querySelector<HTMLElement>\('nav a, nav button'\)\?\.focus\(\)/)
+assert.match(app, /menuButtonRef\.current\?\.focus\(\)/)
+
 // Top bar with the organization and the account; sign-out kept.
 assert.match(app, /className="topbar-org"/)
 assert.match(app, /Sign out/)
